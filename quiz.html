@@ -42,9 +42,11 @@
     sup{font-size:.6em}
     @media(max-width:560px){.card{padding:22px}.options{grid-template-columns:1fr}.btn{width:100%}}
   </style>
+  <script>(function(){var t=null;try{t=localStorage.getItem('apexTheme')}catch(e){}document.documentElement.dataset.theme=t||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light')})()</script>
+  <link rel="stylesheet" href="theme.css" />
 </head>
 <body>
-<header><div class="nav"><a class="brand" href="./"><img src="logo.svg" alt="" />APEX TUTORING</a><a class="back" href="./#courses">← Back to courses</a></div></header>
+<header><div class="nav"><a class="brand" href="./"><img src="logo.svg" alt="" />APEX TUTORING</a><span style="display:flex;align-items:center;gap:12px"><button class="theme-toggle" type="button" aria-label="Switch to dark mode">🌙</button><a class="back" href="./#courses">← Back to courses</a></span></div></header>
 <main class="wrap">
   <section class="card view" id="startView">
     <div class="eyebrow">Free placement quiz</div>
@@ -216,5 +218,6 @@
   $("skipBtn").addEventListener("click", () => answer(false));
 </script>
 <script src="stats.js"></script>
+<script src="theme.js"></script>
 </body>
 </html>

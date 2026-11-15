@@ -1,0 +1,87 @@
+/* Apex Tutoring: dark mode + theme toggle (shared by every page).
+   Light mode is each page's own styles; this file only adds the toggle button and the dark overrides. */
+
+.theme-toggle{flex:none;display:grid;place-items:center;width:38px;height:38px;border-radius:999px;border:1px solid var(--line,#e3eaf1);background:transparent;color:inherit;font-size:1.05rem;cursor:pointer;line-height:1}
+.theme-toggle:hover{background:rgba(127,160,200,.15)}
+.theme-toggle:focus-visible{outline:3px solid #7ba9d6;outline-offset:2px}
+
+html[data-theme="dark"]{
+  color-scheme:dark;
+  --navy:#e6eef8;          /* headings & strong text (light on dark) */
+  --blue:#8fb8e6;          /* links, eyebrows, accents */
+  --sky:#1d3352;           /* soft chips */
+  --ink:#d7e0eb;           /* body text */
+  --muted:#a9b6c7;         /* secondary text */
+  --paper:#0d1726;
+  --line:#2a3f5c;
+  --mint:#163a32;
+  --white:#142338;
+  --green:#6fd0ad;
+  --shadow:0 18px 50px rgba(0,0,0,.35);
+}
+html[data-theme="dark"] body{background:#0d1726;color:var(--ink)}
+
+/* ---- surfaces that are white / near-white in light mode ---- */
+html[data-theme="dark"] :is(.card,.price-card,.portal-panel,.portal-view,.booking,.faq-item,.review-card,.ws-card,.policy,.strengths li,
+  .float-tag,.math-card,.course-detail,.close-detail,.contact-box.white,article,.auth-card,.cal-nav,.thread-form,.bubble.them){background:#142338;border-color:var(--line)}
+html[data-theme="dark"] :is(.grade,.stat,.portal-stat,.hw,.res,.thread-list,.cal,.pchart-wrap,.option,.bands li,.course-card.soon,.coming-card){background:#1a2c45;border-color:var(--line)}
+html[data-theme="dark"] :is(.soft,.book-section){background:#101d30}
+html[data-theme="dark"] header{background:rgba(13,23,38,.94);border-color:var(--line)}
+html[data-theme="dark"] .links{background:transparent}
+@media(max-width:850px){html[data-theme="dark"] .links{background:#142338}}
+html[data-theme="dark"] .hero{background:radial-gradient(circle at 82% 20%,#1d3352 0,transparent 30%),linear-gradient(135deg,#0f1c2e,#0d1726)}
+html[data-theme="dark"] :is(.visual,.about-art,.product-art,.quiz-cta,.rec){background:linear-gradient(145deg,#16283f,#132b2a);border-color:var(--line)}
+html[data-theme="dark"] .visual:before,html[data-theme="dark"] .visual:after{background:rgba(255,255,255,.05)}
+html[data-theme="dark"] body:has(.quiz-body),html[data-theme="dark"] body.quiz-page{background:#0d1726}
+
+/* ---- form fields ---- */
+html[data-theme="dark"] :is(input,select,textarea){background:#0f1c2e;color:var(--ink);border-color:var(--line)}
+html[data-theme="dark"] ::placeholder{color:#8a99ad}
+
+/* ---- buttons (brand navy backgrounds become a lighter brand blue) ---- */
+html[data-theme="dark"] :is(.btn,.nav-cta,.portal-btn.primary,.portal-btn.active){background:#3d6fa3;color:#fff;border-color:#3d6fa3}
+html[data-theme="dark"] :is(.btn,.nav-cta):hover{background:#4f86c0}
+html[data-theme="dark"] :is(.btn.secondary,.btn.light,.portal-btn,.add,.close-detail){background:#142338;color:var(--ink);border:1px solid var(--line)}
+html[data-theme="dark"] :is(.btn.secondary,.btn.light):hover{background:#1d3352}
+html[data-theme="dark"] .contact{background:#09121e}
+html[data-theme="dark"] .contact-box{background:#132238;border-color:#2a3f5c}
+html[data-theme="dark"] .contact .btn{background:#f3c969;color:#14243a;border-color:#f3c969}
+html[data-theme="dark"] .contact .btn:hover{background:#ffe29a}
+html[data-theme="dark"] .contact-steps b{color:#14243a}
+html[data-theme="dark"] .contact .section-head h2{color:#fff}
+
+/* ---- tinted callouts ---- */
+html[data-theme="dark"] :is(.goal,.badge,.result-badge,.placeholder,.tip,.quiz-banner){background:#2a2410;color:#f3d88a;border-color:#5a4a1a}
+html[data-theme="dark"] .next-session,html[data-theme="dark"] .notice,html[data-theme="dark"] .summary{background:#1d3352;color:var(--ink)}
+html[data-theme="dark"] .msg.ok{background:#163a32;color:#9be3c7}
+html[data-theme="dark"] .msg.err{background:#3a1c1c;color:#ffb4a8}
+html[data-theme="dark"] .msg.info{background:#1d3352;color:#cfe0f3}
+html[data-theme="dark"] .hw.done{background:#163a32;border-color:#2c6b56}
+html[data-theme="dark"] :is(.progress,.bar,.portal-progress){background:#24384f}
+html[data-theme="dark"] .hw-status.no{color:#f3d88a}
+
+/* ---- portal chat, chart, calendar ---- */
+html[data-theme="dark"] .bubble.me{background:#2c5a8a;color:#fff}
+html[data-theme="dark"] .ptip{background:#0a1420;border:1px solid var(--line)}
+html[data-theme="dark"] .pchart .grid{stroke:#2a3f5c}
+html[data-theme="dark"] .pchart .line{stroke:#8fb8e6}
+html[data-theme="dark"] .pchart .dot{fill:#8fb8e6;stroke:#1a2c45}
+html[data-theme="dark"] .pchart .tick{fill:#a9b6c7}
+html[data-theme="dark"] .day.had{background:#3d6fa3}
+html[data-theme="dark"] .linkbtn.danger{color:#ff9b8e}
+html[data-theme="dark"] .bubble.me .linkbtn{color:#ffd0c8}
+html[data-theme="dark"] .k.next{background:#142338}
+
+/* ---- misc ---- */
+html[data-theme="dark"] .skip{background:#3d6fa3}
+html[data-theme="dark"] .review-card .stars{color:#f3c969}
+html[data-theme="dark"] .footer-brand{color:var(--navy)}
+html[data-theme="dark"] .report-panel{background:#101d30}  /* the report itself stays white, like paper */
+html[data-theme="dark"] .links{color:#c3cede}
+html[data-theme="dark"] .links a:hover{color:#fff}
+html[data-theme="dark"] article :is(p,li){color:var(--ink)}
+html[data-theme="dark"] .report-sheet{--navy:#14243a;--muted:#56657a;--ink:#1d2a3b;--line:#e3eaf1;color:#1d2a3b}
+html[data-theme="dark"] .report-sheet :is(p,li){color:#3d4b5e}
+html[data-theme="dark"] .report-sheet .rtile{background:#f2f6fa}
+html[data-theme="dark"] .student-list button{background:#1a2c45;border-color:var(--line);color:var(--ink)}
+html[data-theme="dark"] .student-list button.active{background:#142338;border-color:#8fb8e6}

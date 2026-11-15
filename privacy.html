@@ -31,9 +31,11 @@
     .summary{background:var(--sky);border-radius:16px;padding:16px 18px;margin-top:22px}.summary p{margin:0;color:var(--navy)}
     @media(max-width:560px){article{padding:22px}}
   </style>
+  <script>(function(){var t=null;try{t=localStorage.getItem('apexTheme')}catch(e){}document.documentElement.dataset.theme=t||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light')})()</script>
+  <link rel="stylesheet" href="theme.css" />
 </head>
 <body>
-<header><div class="nav"><a class="brand" href="./"><img src="logo.svg" alt="" />APEX TUTORING</a><a class="back" href="./">← Back to home</a></div></header>
+<header><div class="nav"><a class="brand" href="./"><img src="logo.svg" alt="" />APEX TUTORING</a><span style="display:flex;align-items:center;gap:12px"><button class="theme-toggle" type="button" aria-label="Switch to dark mode">🌙</button><a class="back" href="./">← Back to home</a></span></div></header>
 <main class="wrap"><article>
   <div class="eyebrow">Privacy policy</div>
   <h1>Your family's privacy</h1>
@@ -86,5 +88,6 @@
   <p>If we change this policy, we'll update the date at the top of this page.</p>
 </article></main>
 <script src="stats.js"></script>
+<script src="theme.js"></script>
 </body>
 </html>

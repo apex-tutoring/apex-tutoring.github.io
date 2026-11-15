@@ -57,6 +57,12 @@ service cloud.firestore {
       }
     }
 
+    // Resource library: links the tutor shares by level. Signed-in families can read; only the tutor can change.
+    match /resources/{id} {
+      allow read: if signedIn();
+      allow write: if isTeacher();
+    }
+
     // Reviews: one per family (document ID = their login ID). Families write their own,
     // which always resets to "waiting"; only the tutor can approve. Anyone can read approved ones.
     match /testimonials/{uid} {

@@ -340,6 +340,133 @@ async function start() {
     return el("div", { class: "thread" }, list, form);
   }
 
+  // ---------- Monthly progress report (printable; the tutor can also email it) ----------
+  const monthKey = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  const monthName = (k) => { const [y, m] = k.split("-").map(Number); return new Date(y, m - 1, 1).toLocaleDateString(undefined, { month: "long", year: "numeric" }); };
+  function reportData(s, updates, key) {
+    const inMonth = updates.filter((u) => u.createdAt?.toDate && monthKey(u.createdAt.toDate()) === key)
+      .sort((a, b) => a.createdAt.toMillis() - b.createdAt.toMillis());
+    const topics = [...new Set(inMonth.map((u) => u.topic).filter(Boolean))];
+    const mastered = [...new Set(inMonth.filter((u) => u.status === "Mastered").map((u) => u.topic))];
+    const hw = inMonth.filter(hasHomework);
+    return { inMonth, topics, mastered, hwTotal: hw.length, hwDone: hw.filter((u) => u.homeworkDone).length,
+      allMastered: topicSummary(updates).mastered, progress: Math.max(0, Math.min(100, Number(s.progress) || 0)) };
+  }
+  function reportSheet(s, updates, key) {
+    const r = reportData(s, updates, key);
+    const tile = (n, label) => el("div", { class: "rtile" }, el("strong", { text: String(n) }), el("span", { text: label }));
+    return el("div", { class: "report-sheet" },
+      el("div", { class: "rhead" }, el("div", { class: "rbrand" }, el("img", { src: "logo.svg", alt: "" }), "APEX TUTORING"),
+        el("div", { class: "rtitle" }, el("b", { text: "Monthly Progress Report" }), el("span", { text: monthName(key) }))),
+      el("h2", { text: s.name }), el("p", { class: "muted", style: "margin:0 0 14px", text: `${s.grade} · ${s.course}` }),
+      el("div", { class: "rtiles" }, tile(r.inMonth.length, "Sessions this month"), tile(r.topics.length, "Topics worked on"),
+        tile(r.mastered.length, "Mastered this month"), tile(r.hwTotal ? `${r.hwDone}/${r.hwTotal}` : "—", "Homework done")),
+      el("p", { class: "rsum", text: `Overall: ${s.sessions || 0} sessions completed · ${r.allMastered} topics mastered · course progress ${r.progress}%` }),
+      el("h3", { text: "Sessions" }),
+      r.inMonth.length ? el("table", { class: "rtable" },
+        el("thead", {}, el("tr", {}, ["Date", "Topic", "Status", "Homework"].map((h) => el("th", { text: h })))),
+        el("tbody", {}, r.inMonth.map((u) => el("tr", {}, el("td", { text: fmtDate(u.createdAt) }), el("td", { text: u.topic || "Session" }),
+          el("td", { text: u.status || "" }), el("td", { text: hasHomework(u) ? (u.homeworkDone ? "✓ Done" : "Not done") : "—" })))))
+        : el("p", { class: "empty", text: "No sessions recorded this month." }),
+      r.inMonth.some((u) => u.note) ? el("h3", { text: "Tutor notes" }) : null,
+      r.inMonth.some((u) => u.note) ? el("ul", { class: "rnotes" }, r.inMonth.filter((u) => u.note).map((u) => el("li", {}, el("b", { text: `${fmtDate(u.createdAt)} · ${u.topic || "Session"}: ` }), u.note))) : null,
+      el("h3", { text: "Looking ahead" }),
+      el("ul", { class: "rnotes" }, el("li", {}, el("b", { text: "Next goal: " }), s.nextGoal || "To be set at the next session"),
+        el("li", {}, el("b", { text: "Next session: " }), fmtSession(s) || "Not scheduled yet")),
+      el("p", { class: "rfoot", text: `Prepared by Veer · Apex Tutoring · ${new Date().toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" })} · apex-tutoring.github.io` }));
+  }
+  function reportText(s, updates, key) {
+    const r = reportData(s, updates, key);
+    const lines = [`${monthName(key)} progress report for ${s.name} (${s.grade}, ${s.course})`, "",
+      `Sessions this month: ${r.inMonth.length}`, `Topics worked on: ${r.topics.join(", ") || "none"}`,
+      `Mastered this month: ${r.mastered.join(", ") || "none yet"}`, `Homework done: ${r.hwTotal ? r.hwDone + " of " + r.hwTotal : "none assigned"}`,
+      `Overall: ${s.sessions || 0} sessions · ${r.allMastered} topics mastered · course progress ${r.progress}%`, ""];
+    r.inMonth.filter((u) => u.note).forEach((u) => lines.push(`${fmtDate(u.createdAt)} · ${u.topic || "Session"}: ${u.note}`));
+    lines.push("", `Next goal: ${s.nextGoal || "to be set at the next session"}`, `Next session: ${fmtSession(s) || "not scheduled yet"}`);
+    return lines.join("\n");
+  }
+  function openReport(s, updates, role) {
+    const months = [...new Set([monthKey(new Date()), ...updates.filter((u) => u.createdAt?.toDate).map((u) => monthKey(u.createdAt.toDate()))])].sort().reverse();
+    let key = months[0];
+    const holder = el("div", {});
+    const status = el("p", { class: "msg", role: "status" });
+    const sel = el("select", { "aria-label": "Report month" }, months.map((k) => el("option", { value: k, text: monthName(k) })));
+    sel.addEventListener("change", () => { key = sel.value; holder.replaceChildren(reportSheet(s, updates, key)); });
+    const close = () => { overlay.remove(); document.body.classList.remove("report-open"); };
+    const overlay = el("div", { class: "report-overlay", role: "dialog", "aria-modal": "true", "aria-label": "Monthly progress report" },
+      el("div", { class: "report-panel" },
+        el("div", { class: "report-bar" }, sel,
+          el("button", { type: "button", class: "btn small", text: "🖨 Print / Save PDF", onclick: () => window.print() }),
+          role === "teacher" ? el("button", { type: "button", class: "btn light small", text: "✉️ Email to family", onclick: async () => {
+            try { await emailFamily(s, `${monthName(key)} progress report for ${s.name}`, reportText(s, updates, key)); setMsg(status, `Report emailed to ${s.familyEmail} ✓`, "ok"); }
+            catch (e) { setMsg(status, "Email didn't send: " + e.message, "err"); } } }) : null,
+          el("button", { type: "button", class: "btn light small", text: "Close", onclick: close })),
+        status, holder));
+    overlay.addEventListener("keydown", (e) => { if (e.key === "Escape") close(); });
+    overlay.addEventListener("click", (e) => { if (e.target === overlay) close(); });
+    holder.append(reportSheet(s, updates, key));
+    document.body.append(overlay); document.body.classList.add("report-open");
+    sel.focus();
+  }
+
+  // ---------- Resource library: the tutor adds links by level; families see the ones for their level ----------
+  const LEVELS = ["All levels", "Grades 1–2", "Grade 3", "Grades 4–5", "Grades 6–7", "Pre-Algebra", "Test Prep"];
+  const LEVEL_PACK = { "Grades 1–2": "grades-1-2", "Grade 3": "grade-3", "Grades 4–5": "grades-4-5", "Grades 6–7": "grades-6-7", "Pre-Algebra": "pre-algebra", "Test Prep": "competition" };
+  function levelFor(s) {
+    const g = s.grade || "";
+    if (/Grade [12]$/.test(g)) return "Grades 1–2";
+    if (g === "Grade 3") return "Grade 3";
+    if (/Grade [45]$/.test(g)) return "Grades 4–5";
+    if (/Grade [67]$/.test(g)) return "Grades 6–7";
+    return "Pre-Algebra";
+  }
+  let resourceCache = null;
+  async function getResources(force = false) {
+    if (!resourceCache || force) resourceCache = (await F.getDocs(F.collection(db, "resources"))).docs.map((d) => ({ id: d.id, ...d.data() }));
+    return resourceCache;
+  }
+  function resourceItem(r, extra) {
+    const url = safeUrl(r.url || "");
+    return el("li", { class: "res" },
+      el("div", {}, url ? el("a", { href: url, target: "_blank", rel: "noopener noreferrer", text: `${r.title} ↗` }) : el("strong", { text: r.title }),
+        el("span", { class: "res-level", text: r.level }), r.note ? el("p", { text: r.note }) : null), extra || null);
+  }
+  async function familyResources(s) {
+    const levels = new Set(["All levels", levelFor(s)]); if (s.course === "Test Prep") levels.add("Test Prep");
+    let items = [];
+    try { items = (await getResources()).filter((r) => levels.has(r.level)); } catch {}
+    const pack = LEVEL_PACK[levelFor(s)];
+    const built = [{ title: `${PACKS[pack]} (free Apex worksheet)`, url: `${SITE}worksheets/${pack}.html`, level: levelFor(s), note: "Printable practice with an answer key." }];
+    return el("ul", { class: "res-list" }, [...items, ...built].map((r) => resourceItem(r)));
+  }
+  async function loadResources() {
+    const box = $("resourcesBox"); if (!box) return;
+    const status = el("p", { class: "msg full", role: "status" });
+    const form = el("form", { class: "form-grid" },
+      el("label", { class: "full" }, "Title", el("input", { name: "title", required: "", maxlength: "80", placeholder: "e.g. Khan Academy: Long division" })),
+      el("label", {}, "Link", el("input", { name: "url", type: "url", required: "", maxlength: "400", placeholder: "https://…" })),
+      el("label", {}, "Level", el("select", { name: "level" }, LEVELS.map((l) => el("option", { text: l })))),
+      el("label", { class: "full" }, "Short note (optional)", el("input", { name: "note", maxlength: "160", placeholder: "Why it helps" })),
+      el("button", { class: "btn small full", type: "submit", text: "Add resource" }), status);
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault(); const f = new FormData(form); const url = f.get("url").trim();
+      if (!safeUrl(url)) return setMsg(status, "Links must start with https://", "err");
+      try { await F.addDoc(F.collection(db, "resources"), { title: f.get("title").trim(), url, level: f.get("level"), note: f.get("note").trim(), createdAt: F.serverTimestamp() });
+        form.reset(); setMsg(status, "Added. Families at that level can see it now.", "ok"); render(true); }
+      catch (err) { setMsg(status, friendly(err), "err"); }
+    });
+    const list = el("ul", { class: "res-list" });
+    async function render(force) {
+      try {
+        const rs = (await getResources(force)).sort((a, b) => LEVELS.indexOf(a.level) - LEVELS.indexOf(b.level));
+        list.replaceChildren(...(rs.length ? rs.map((r) => resourceItem(r, el("button", { type: "button", class: "linkbtn danger", text: "Delete", onclick: async () => {
+          try { await F.deleteDoc(F.doc(db, "resources", r.id)); render(true); } catch (err) { setMsg(status, friendly(err), "err"); } } })))
+          : [el("li", { class: "empty", text: "No resources yet. Free worksheet packs are already shown to each family automatically." })]));
+      } catch { list.replaceChildren(el("li", { class: "empty", text: "Resources couldn't load." })); }
+    }
+    box.replaceChildren(form, list); render(true);
+  }
+
   // ---------- Family view ----------
   async function loadFamily(user) {
     const box = $("familyStudents");
@@ -350,10 +477,12 @@ async function start() {
       const s = d.data();
       const updates = await getUpdates(d.id);
       box.append(el("article", { class: "card" },
-        el("h2", { text: s.name }), el("p", { class: "muted", style: "margin:0", text: `${s.grade} · ${s.course}` }),
+        el("div", { class: "card-head" }, el("div", {}, el("h2", { text: s.name }), el("p", { class: "muted", style: "margin:0", text: `${s.grade} · ${s.course}` })),
+          el("button", { type: "button", class: "btn light small", text: "📄 Monthly report", onclick: () => openReport({ id: d.id, ...s }, updates, "family") })),
         progressBlock(s, updates),
         el("div", { class: "viz-row" }, el("div", {}, progressChart(updates)), el("div", {}, el("p", { class: "chart-title", text: "Session calendar" }), sessionCalendar(s, updates))),
         el("h3", { style: "margin-top:16px", text: "💬 Messages with your tutor" }), messageThread({ id: d.id, ...s }, "family"),
+        el("h3", { style: "margin-top:20px", text: `📚 Resources for ${levelFor(s)}` }), await familyResources(s),
         el("h3", { style: "margin-top:20px", text: "Tutor updates & homework" }), updatesList(updates, { studentId: d.id, role: "family" })));
     }
     box.append(await reviewCard(user, snap.docs[0].data()));
@@ -408,7 +537,7 @@ async function start() {
   }
 
   async function loadTeacher() {
-    loadStats(); loadReviews();
+    loadStats(); loadReviews(); loadResources();
     const snap = await F.getDocs(F.query(F.collection(db, "students"), F.orderBy("name")));
     students = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
     // Flag students whose newest message is from the family and hasn't been seen yet
@@ -526,7 +655,8 @@ async function start() {
 
     ed.replaceChildren(
       el("h2", { text: s.name }), el("p", { class: "muted", style: "margin:0", text: `${s.grade} · ${s.course} · ${s.familyEmail}` }),
-      el("div", { class: "row", style: "gap:16px;margin-top:4px" }, resend, studentAdmin(s)),
+      el("div", { class: "row", style: "gap:16px;margin-top:4px" }, resend, studentAdmin(s),
+        el("button", { type: "button", class: "btn light small", text: "📄 Monthly report", onclick: () => openReport(s, updates, "teacher") })),
       ...progressBlock(s, updates).filter(Boolean),
       el("div", { class: "viz-row" }, el("div", {}, progressChart(updates)), el("div", {}, el("p", { class: "chart-title", text: "Session calendar" }), sessionCalendar(s, updates))),
       el("div", { class: "row" }, el("strong", { style: "color:var(--navy)", text: "Course progress %" }), progressInput, saveProgress),
