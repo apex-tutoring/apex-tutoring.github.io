@@ -31,6 +31,24 @@ service cloud.firestore {
           get(/databases/$(database)/documents/students/$(studentId)).data.familyUid == request.auth.uid);
         allow write: if isTeacher();
       }
+
+      // Messages between the tutor and the family. Each side can only post as itself,
+      // messages can't be edited, and only the tutor can delete them.
+      match /messages/{messageId} {
+        function isFamily() {
+          return signedIn() && get(/databases/$(database)/documents/students/$(studentId)).data.familyUid == request.auth.uid;
+        }
+        function validMessage(from) {
+          return request.resource.data.keys().hasOnly(['from', 'text', 'createdAt'])
+            && request.resource.data.from == from
+            && request.resource.data.text is string
+            && request.resource.data.text.size() > 0 && request.resource.data.text.size() <= 1000
+            && request.resource.data.createdAt == request.time;
+        }
+        allow read: if isTeacher() || isFamily();
+        allow create: if (isTeacher() && validMessage('teacher')) || (isFamily() && validMessage('family'));
+        allow delete: if isTeacher();
+      }
     }
 
     // Website visitor stats: one document per day of plain counters (no personal data).

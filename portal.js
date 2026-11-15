@@ -11,12 +11,13 @@ const SDK = "https://www.gstatic.com/firebasejs/10.12.2/";
 // These IDs are public by design. Leave as PASTE_… to turn emails off.
 const EMAILJS = { service: "apex_gmail", template: "family_update", publicKey: "EiIbnInZ3MH-0EpaB" };
 const PORTAL_URL = "https://apex-tutoring.github.io/portal.html";
-async function emailFamily(student, subject, message) {
+const TUTOR_EMAIL = "team.apextutoring@gmail.com";
+async function emailFamily(student, subject, message, toEmail = student.familyEmail) {
   if (EMAILJS.service.startsWith("PASTE")) throw new Error("Email notifications aren't set up yet.");
   const r = await fetch("https://api.emailjs.com/api/v1.0/email/send", {
     method: "POST", headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ service_id: EMAILJS.service, template_id: EMAILJS.template, user_id: EMAILJS.publicKey,
-      template_params: { to_email: student.familyEmail, student_name: student.name, subject, message, portal_link: PORTAL_URL,
+      template_params: { to_email: toEmail, student_name: student.name, subject, message, portal_link: PORTAL_URL,
         // HTML version for the email body: escape everything, then keep line breaks and make links clickable
         message_html: message.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]))
           .replace(/(https:\/\/[^\s<]+)/g, '<a href="$1">$1</a>').replace(/\n/g, "<br>") } }),
@@ -89,7 +90,7 @@ async function start() {
 
   A.onAuthStateChanged(auth, async (user) => {
     $("who").hidden = !user;
-    if (!user) { $("loginForm").reset(); return show("loginView"); }
+    if (!user) { stopLive(); selectedId = null; $("editor").replaceChildren(el("p", { class: "empty", text: "Select a student to log a session and update their progress." })); $("loginForm").reset(); return show("loginView"); }
     $("whoEmail").textContent = user.email;
     show("loadingView");
     try {
@@ -185,10 +186,63 @@ async function start() {
     ];
   }
 
+  // ---------- Messages (live chat between tutor and family) ----------
+  let unsubs = [];
+  function stopLive() { unsubs.forEach((u) => u()); unsubs = []; }
+  function fmtTime(ts) {
+    const d = ts?.toDate ? ts.toDate() : null;
+    return d ? d.toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) : "Sending…";
+  }
+  function messageThread(student, role) {
+    const mine = role, theirs = role === "teacher" ? "family" : "teacher";
+    const list = el("div", { class: "thread-list", role: "log", "aria-live": "polite" }, el("p", { class: "empty", text: "Loading messages…" }));
+    const box = el("textarea", { name: "text", maxlength: "1000", required: "", rows: "2",
+      placeholder: role === "teacher" ? `Message ${student.name}'s family…` : "Message your tutor…" });
+    const notify = el("input", { type: "checkbox", name: "notify", checked: "" });
+    const status = el("p", { class: "msg", role: "status" });
+    const form = el("form", { class: "thread-form" }, box,
+      el("div", { class: "row" }, el("button", { class: "btn small", type: "submit", text: "Send" }),
+        role === "teacher" ? el("label", { class: "check" }, notify, "Email the family") : el("small", { class: "muted", text: "Your tutor gets an email when you send a message." })),
+      status);
+    box.addEventListener("keydown", (e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) form.requestSubmit(); });
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const text = box.value.trim(); if (!text) return;
+      const btn = form.querySelector("button"); btn.disabled = true; setMsg(status, "");
+      try {
+        await F.addDoc(F.collection(db, "students", student.id, "messages"), { from: mine, text, createdAt: F.serverTimestamp() });
+        box.value = "";
+        const doEmail = role === "teacher" ? notify.checked : true;
+        if (doEmail) {
+          const subject = role === "teacher" ? `New message from Veer about ${student.name}` : `New message from ${student.name}'s family`;
+          const to = role === "teacher" ? student.familyEmail : TUTOR_EMAIL;
+          try { await emailFamily(student, subject, text, to); setMsg(status, role === "teacher" ? "Sent. Family emailed ✓" : "Sent ✓", "ok"); }
+          catch (mailErr) { setMsg(status, "Sent (email notice didn't go out: " + mailErr.message + ")", "info"); }
+        } else setMsg(status, "Sent ✓", "ok");
+      } catch (err) { setMsg(status, friendly(err), "err"); }
+      finally { btn.disabled = false; }
+    });
+    const q = F.query(F.collection(db, "students", student.id, "messages"), F.orderBy("createdAt"));
+    unsubs.push(F.onSnapshot(q, (snap) => {
+      const msgs = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      list.replaceChildren(...(msgs.length ? msgs.map((m) => {
+        const bubble = el("div", { class: "bubble " + (m.from === mine ? "me" : "them") },
+          el("span", { class: "who", text: m.from === "teacher" ? "Veer" : `${student.name}'s family` }),
+          el("p", { text: m.text }), el("time", { text: fmtTime(m.createdAt) }));
+        if (role === "teacher") bubble.append(el("button", { type: "button", class: "linkbtn danger tiny", text: "Delete", onclick: async () => {
+          try { await F.deleteDoc(F.doc(db, "students", student.id, "messages", m.id)); } catch (err) { setMsg(status, friendly(err), "err"); } } }));
+        return bubble;
+      }) : [el("p", { class: "empty", text: role === "teacher" ? "No messages yet. Say hi to the family!" : "No messages yet. Questions about homework or scheduling? Send one here." })]));
+      list.scrollTop = list.scrollHeight;
+      if (role === "teacher" && msgs.length) F.updateDoc(F.doc(db, "students", student.id), { teacherSeenAt: F.serverTimestamp() }).catch(() => {});
+    }, () => list.replaceChildren(el("p", { class: "empty", text: "Messages couldn't load." }))));
+    return el("div", { class: "thread" }, list, form);
+  }
+
   // ---------- Family view ----------
   async function loadFamily(user) {
     const box = $("familyStudents");
-    box.replaceChildren();
+    stopLive(); box.replaceChildren();
     const snap = await F.getDocs(F.query(F.collection(db, "students"), F.where("familyUid", "==", user.uid)));
     if (snap.empty) { box.append(el("div", { class: "card" }, el("p", { class: "empty", text: "Your tutor hasn't added your student profile yet. Check back after your first session." }))); return; }
     for (const d of snap.docs) {
@@ -197,7 +251,8 @@ async function start() {
       box.append(el("article", { class: "card" },
         el("h2", { text: s.name }), el("p", { class: "muted", style: "margin:0", text: `${s.grade} · ${s.course}` }),
         progressBlock(s, updates),
-        el("h3", { style: "margin-top:16px", text: "Tutor updates" }), updatesList(updates)));
+        el("h3", { style: "margin-top:16px", text: "💬 Messages with your tutor" }), messageThread({ id: d.id, ...s }, "family"),
+        el("h3", { style: "margin-top:20px", text: "Tutor updates" }), updatesList(updates)));
     }
   }
 
@@ -229,6 +284,14 @@ async function start() {
     loadStats();
     const snap = await F.getDocs(F.query(F.collection(db, "students"), F.orderBy("name")));
     students = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    // Flag students whose newest message is from the family and hasn't been seen yet
+    await Promise.all(students.map(async (st) => {
+      try {
+        const last = await F.getDocs(F.query(F.collection(db, "students", st.id, "messages"), F.orderBy("createdAt", "desc"), F.limit(1)));
+        const m = last.docs[0]?.data();
+        st.unread = !!(m && m.from === "family" && (!st.teacherSeenAt || (m.createdAt?.toMillis?.() || 0) > (st.teacherSeenAt?.toMillis?.() || 0)));
+      } catch { st.unread = false; }
+    }));
     renderList();
     if (selectedId && students.some((s) => s.id === selectedId)) await openStudent(selectedId);
   }
@@ -238,11 +301,13 @@ async function start() {
     if (!students.length) { ul.append(el("li", { class: "empty", text: "No students yet. Add one below." })); return; }
     students.forEach((s) => ul.append(el("li", {},
       el("button", { type: "button", class: s.id === selectedId ? "active" : "", onclick: () => openStudent(s.id, true) },
-        el("strong", { text: s.name }), el("small", { text: `${s.grade} · ${s.familyEmail}` })))));
+        el("strong", { text: s.name }), s.unread && s.id !== selectedId ? el("span", { class: "unread", text: "💬 New message" }) : null,
+        el("small", { text: `${s.grade} · ${s.familyEmail}` })))));
   }
 
   async function openStudent(id, scroll = false) {
-    selectedId = id; renderList();
+    stopLive();
+    selectedId = id; const cur = students.find((x) => x.id === id); if (cur) cur.unread = false; renderList();
     if (scroll && matchMedia("(max-width: 820px)").matches) $("editor").scrollIntoView({ behavior: "smooth", block: "start" });
     const s = students.find((x) => x.id === id);
     const ed = $("editor");
@@ -336,6 +401,7 @@ async function start() {
       el("div", { class: "row" }, el("strong", { style: "color:var(--navy)", text: "Course progress %" }), progressInput, saveProgress),
       el("h3", { style: "margin-top:20px", text: "Next session" }), nsForm,
       el("h3", { style: "margin-top:20px", text: "Log a session" }), form,
+      el("h3", { style: "margin-top:20px", text: "💬 Messages" }), messageThread(s, "teacher"),
       el("h3", { style: "margin-top:20px", text: "Past updates" }), updatesList(updates, { studentId: id }));
   }
 
