@@ -9,14 +9,17 @@ import { firebaseConfig } from "./firebase-config.js";
 const SDK = "https://www.gstatic.com/firebasejs/10.12.2/";
 // EmailJS (emailjs.com) sends "new update" emails to families from team.apextutoring@gmail.com.
 // These IDs are public by design. Leave as PASTE_… to turn emails off.
-const EMAILJS = { service: "PASTE_SERVICE_ID", template: "PASTE_TEMPLATE_ID", publicKey: "PASTE_PUBLIC_KEY" };
+const EMAILJS = { service: "apex_gmail", template: "family_update", publicKey: "EiIbnInZ3MH-0EpaB" };
 const PORTAL_URL = "https://apex-tutoring.github.io/portal.html";
 async function emailFamily(student, subject, message) {
   if (EMAILJS.service.startsWith("PASTE")) throw new Error("Email notifications aren't set up yet.");
   const r = await fetch("https://api.emailjs.com/api/v1.0/email/send", {
     method: "POST", headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ service_id: EMAILJS.service, template_id: EMAILJS.template, user_id: EMAILJS.publicKey,
-      template_params: { to_email: student.familyEmail, student_name: student.name, subject, message, portal_link: PORTAL_URL } }),
+      template_params: { to_email: student.familyEmail, student_name: student.name, subject, message, portal_link: PORTAL_URL,
+        // HTML version for the email body: escape everything, then keep line breaks and make links clickable
+        message_html: message.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]))
+          .replace(/(https:\/\/[^\s<]+)/g, '<a href="$1">$1</a>').replace(/\n/g, "<br>") } }),
   });
   if (!r.ok) throw new Error("Email didn't send (" + r.status + ").");
 }
