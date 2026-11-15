@@ -10,9 +10,13 @@ Live at **https://apex-tutoring.github.io**. It's hosted with GitHub Pages from 
 1. Edit `index.html` and open it in a browser to preview.
 2. Commit and push to `main`. The live site updates within a minute or two.
 
-## Still to do
-- Prices for each level and for shop items
-- In-person locations
-- Real student/parent portal logins (needs a backend such as Firebase)
-- Placement quiz, on-site chat, and digital worksheet packs
+## Pages
+- `index.html` (home), `quiz.html` (placement quiz), `portal.html` + `portal.js` (student portal), `privacy.html`
+- Portal backend: Firebase project `apex-tutoring-1` (owned by team.apextutoring@gmail.com). Rules in `firestore.rules`.
+
+## Backlog
+- **Parent email notifications** when a session update is posted (use EmailJS, free tier, sent from the teacher dashboard)
+- Branded password email: Firebase blocks template edits on new projects; retry later in Authentication → Templates
+- Prices for each level and for shop items; in-person locations
+- Payment buttons (Venmo/Zelle), testimonials, on-site chat, digital worksheet packs
 - Optional custom domain
