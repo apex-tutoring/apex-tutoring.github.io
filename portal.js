@@ -92,18 +92,73 @@ async function start() {
     [...updates].reverse().forEach((u) => u.topic && latest.set(u.topic.toLowerCase(), u.status));
     return { covered: latest.size, mastered: [...latest.values()].filter((s) => s === "Mastered").length };
   }
-  function updatesList(updates) {
+  // Only allow http(s) links so a typed "javascript:" URL can never run.
+  function safeUrl(u) { try { const x = new URL(u); return /^https?:$/.test(x.protocol) ? x.href : null; } catch { return null; } }
+  function fmtSession(s) {
+    if (!s.nextSession) return null;
+    const d = new Date(s.nextSession);
+    return isNaN(d) ? null : d.toLocaleString(undefined, { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+  }
+  function updateBody(u) {
+    const link = safeUrl(u.homeworkLink || "");
+    return [
+      el("strong", { text: u.topic || "Session" }), u.status ? el("span", { class: pillClass(u.status), text: u.status }) : null,
+      el("time", { text: "  " + fmtDate(u.createdAt) }),
+      u.note ? el("p", { text: u.note }) : null,
+      u.homework || link ? el("div", { class: "hw" }, el("strong", { text: "📝 Practice: " }), u.homework || "",
+        link ? el("a", { href: link, target: "_blank", rel: "noopener noreferrer", text: (u.homework ? " · " : "") + "Open worksheet ↗" }) : null) : null,
+    ];
+  }
+  // opts.studentId turns on the teacher's Edit / Delete buttons.
+  function updatesList(updates, opts = {}) {
     if (!updates.length) return el("p", { class: "empty", text: "No session notes yet." });
-    return el("div", { class: "updates" }, updates.map((u) =>
-      el("article", {},
-        el("strong", { text: u.topic || "Session" }), u.status ? el("span", { class: pillClass(u.status), text: u.status }) : null,
-        el("time", { text: "  " + fmtDate(u.createdAt) }),
-        u.note ? el("p", { text: u.note }) : null)));
+    return el("div", { class: "updates" }, updates.map((u) => {
+      const art = el("article", {}, updateBody(u));
+      if (opts.studentId) art.append(noteActions(opts.studentId, u, art));
+      return art;
+    }));
+  }
+  function noteActions(studentId, u, art) {
+    const ref = F.doc(db, "students", studentId, "updates", u.id);
+    let armed = false;
+    const del = el("button", { type: "button", class: "linkbtn danger", text: "Delete", onclick: async () => {
+      if (!armed) { armed = true; del.textContent = "Click again to delete"; setTimeout(() => { armed = false; del.textContent = "Delete"; }, 4000); return; }
+      try { await F.deleteDoc(ref); await openStudent(studentId); } catch (e) { del.textContent = friendly(e); }
+    } });
+    const edit = el("button", { type: "button", class: "linkbtn", text: "Edit", onclick: () => {
+      const f = el("form", { class: "form-grid edit-form" },
+        el("label", {}, "Topic", el("input", { name: "topic", required: "", maxlength: "60", value: u.topic || "" })),
+        el("label", {}, "Status", el("select", { name: "status" }, ["Practicing", "Mastered", "Needs review"].map((o) => {
+          const opt = el("option", { text: o }); if (o === u.status) opt.selected = true; return opt; }))),
+        el("label", { class: "full" }, "Session note", el("textarea", { name: "note", maxlength: "600" }, u.note || "")),
+        el("label", { class: "full" }, "Practice / homework", el("input", { name: "homework", maxlength: "200", value: u.homework || "" })),
+        el("label", { class: "full" }, "Worksheet link", el("input", { name: "homeworkLink", type: "url", maxlength: "400", value: u.homeworkLink || "", placeholder: "https://…" })),
+        el("div", { class: "row full" }, el("button", { class: "btn small", type: "submit", text: "Save changes" }),
+          el("button", { class: "btn light small", type: "button", text: "Cancel", onclick: () => art.replaceChildren(...updateBody(u), noteActions(studentId, u, art)) })));
+      f.addEventListener("submit", async (e) => {
+        e.preventDefault(); const d = new FormData(f);
+        const link = d.get("homeworkLink").trim();
+        if (link && !safeUrl(link)) { alertMsg(f, "Links must start with https://"); return; }
+        try {
+          await F.updateDoc(ref, { topic: d.get("topic").trim(), status: d.get("status"), note: d.get("note").trim(), homework: d.get("homework").trim(), homeworkLink: link });
+          await openStudent(studentId);
+        } catch (err) { alertMsg(f, friendly(err)); }
+      });
+      art.replaceChildren(f);
+    } });
+    return el("div", { class: "note-actions" }, edit, del);
+  }
+  function alertMsg(form, text) {
+    let m = form.querySelector(".msg"); if (!m) { m = el("p", { class: "msg full" }); form.append(m); }
+    setMsg(m, text, "err");
   }
   function progressBlock(s, updates) {
     const t = topicSummary(updates);
     const pct = Math.max(0, Math.min(100, Number(s.progress) || 0));
+    const when = fmtSession(s);
     return [
+      when ? el("div", { class: "next-session" }, el("span", { text: "📅" }),
+        el("div", {}, el("strong", { text: "Next session: " }), when, s.nextSessionWhere ? el("small", { text: s.nextSessionWhere }) : null)) : null,
       el("div", { class: "stats" },
         el("div", { class: "stat" }, el("strong", { text: String(s.sessions || 0) }), el("span", { text: "Sessions completed" })),
         el("div", { class: "stat" }, el("strong", { text: String(t.covered) }), el("span", { text: "Topics covered" })),
@@ -166,35 +221,65 @@ async function start() {
       try { await A.sendPasswordResetEmail(auth, s.familyEmail); setMsg(msg, `Password email sent to ${s.familyEmail}.`, "ok"); }
       catch (e) { setMsg(msg, friendly(e), "err"); } } });
 
+    msg.id = "logMsg";
     const form = el("form", { class: "form-grid" },
       el("label", {}, "Topic", el("input", { name: "topic", required: "", maxlength: "60", placeholder: "e.g. Long division" })),
       el("label", {}, "Status", el("select", { name: "status" }, ["Practicing", "Mastered", "Needs review"].map((o) => el("option", { text: o })))),
       el("label", { class: "full" }, "Session note", el("textarea", { name: "note", maxlength: "600", placeholder: "What did they work on? What went well?" })),
+      el("label", { class: "full" }, "Practice / homework (optional)", el("input", { name: "homework", maxlength: "200", placeholder: "e.g. 10 long division problems, page 3" })),
+      el("label", { class: "full" }, "Worksheet link (optional)", el("input", { name: "homeworkLink", type: "url", maxlength: "400", placeholder: "https://…" })),
       el("label", { class: "full" }, "Next goal (optional)", el("input", { name: "goal", maxlength: "160", value: s.nextGoal || "" })),
       el("label", { class: "check full" }, el("input", { type: "checkbox", name: "counts", checked: "" }), "Count this as a completed session"),
       el("button", { class: "btn full", type: "submit", text: "Add update" }), msg);
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
       const f = new FormData(form);
+      const link = f.get("homeworkLink").trim();
+      if (link && !safeUrl(link)) return setMsg(msg, "Worksheet links must start with https://", "err");
       const btn = form.querySelector("button[type=submit]"); btn.disabled = true;
       try {
         await F.addDoc(F.collection(db, "students", id, "updates"), {
-          topic: f.get("topic").trim(), status: f.get("status"), note: f.get("note").trim(), goal: f.get("goal").trim(), createdAt: F.serverTimestamp(),
+          topic: f.get("topic").trim(), status: f.get("status"), note: f.get("note").trim(), goal: f.get("goal").trim(),
+          homework: f.get("homework").trim(), homeworkLink: link, createdAt: F.serverTimestamp(),
         });
         const patch = { nextGoal: f.get("goal").trim(), lastSession: F.serverTimestamp() };
         if (f.get("counts")) patch.sessions = F.increment(1);
         await F.updateDoc(F.doc(db, "students", id), patch);
         await loadTeacher();
-        setMsg($("editor").querySelector(".msg"), "Update added. The family can see it now.", "ok");
+        setMsg($("logMsg"), "Update added. The family can see it now.", "ok");
       } catch (err) { setMsg(msg, friendly(err), "err"); btn.disabled = false; }
+    });
+
+    // Next session: date/time plus where (Zoom link, library, etc.)
+    const nsMsg = el("p", { class: "msg full", role: "status" });
+    nsMsg.id = "nsMsg";
+    const nsForm = el("form", { class: "form-grid" },
+      el("label", {}, "Date & time", el("input", { name: "when", type: "datetime-local", value: s.nextSession || "" })),
+      el("label", {}, "Where (optional)", el("input", { name: "where", maxlength: "160", value: s.nextSessionWhere || "", placeholder: "Zoom link or location" })),
+      el("div", { class: "row full" },
+        el("button", { class: "btn small", type: "submit", text: "Save next session" }),
+        s.nextSession ? el("button", { class: "btn light small", type: "button", text: "Clear", onclick: () => saveNext("", "") }) : null),
+      nsMsg);
+    async function saveNext(when, where) {
+      try {
+        await F.updateDoc(F.doc(db, "students", id), { nextSession: when, nextSessionWhere: where });
+        await loadTeacher();
+        setMsg($("nsMsg"), when ? "Next session saved. The family can see it now." : "Next session cleared.", "ok");
+      } catch (err) { setMsg(nsMsg, friendly(err), "err"); }
+    }
+    nsForm.addEventListener("submit", (e) => {
+      e.preventDefault(); const d = new FormData(nsForm);
+      if (!d.get("when")) return setMsg(nsMsg, "Pick a date and time first.", "err");
+      saveNext(d.get("when"), d.get("where").trim());
     });
 
     ed.replaceChildren(
       el("h2", { text: s.name }), el("p", { class: "muted", style: "margin:0", text: `${s.grade} · ${s.course} · ${s.familyEmail}` }), resend,
       ...progressBlock(s, updates),
       el("div", { class: "row" }, el("strong", { style: "color:var(--navy)", text: "Course progress %" }), progressInput, saveProgress),
+      el("h3", { style: "margin-top:20px", text: "Next session" }), nsForm,
       el("h3", { style: "margin-top:20px", text: "Log a session" }), form,
-      el("h3", { style: "margin-top:20px", text: "Past updates" }), updatesList(updates));
+      el("h3", { style: "margin-top:20px", text: "Past updates" }), updatesList(updates, { studentId: id }));
   }
 
   function randomPassword() {

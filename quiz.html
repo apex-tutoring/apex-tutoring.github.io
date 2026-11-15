@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Take the free Apex Tutoring placement quiz to find the right math level, from Grade 1 through Pre-Algebra." />
+  <title>Placement Quiz | Apex Tutoring</title>
+  <link rel="icon" type="image/svg+xml" href="logo.svg" />
+  <style>
+    :root{--navy:#14243a;--blue:#315f91;--sky:#eaf2fa;--ink:#243247;--muted:#68778a;--line:#e3eaf1;--gold:#f3c969;--green:#2f7d66;--red:#b42318;--shadow:0 18px 50px rgba(20,36,58,.09)}
+    *{box-sizing:border-box}body{margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--ink);background:linear-gradient(135deg,#f8fbff,#eef3f8);line-height:1.55;min-height:100vh;overflow-x:hidden}
+    a{color:var(--blue)}button{font:inherit;cursor:pointer}.wrap{width:min(720px,calc(100% - 32px));margin:auto}
+    header{background:white;border-bottom:1px solid var(--line)}.nav{height:70px;display:flex;align-items:center;justify-content:space-between;width:min(1080px,calc(100% - 32px));margin:auto}.brand{display:flex;align-items:center;gap:10px;font-weight:850;color:var(--navy);text-decoration:none;letter-spacing:.02em}.brand img{width:38px;height:38px}.back{font-size:.9rem;font-weight:700;text-decoration:none}
+    main{padding:36px 0 70px}.card{background:white;border:1px solid var(--line);border-radius:22px;padding:30px;box-shadow:var(--shadow)}.view[hidden]{display:none}
+    .eyebrow{font-size:.74rem;text-transform:uppercase;letter-spacing:.16em;color:var(--blue);font-weight:800}h1{color:var(--navy);letter-spacing:-.03em;margin:8px 0 10px;font-size:clamp(1.9rem,5vw,2.6rem);line-height:1.12}h2{color:var(--navy);margin:0;font-size:clamp(1.4rem,4vw,1.9rem);letter-spacing:-.02em}.muted{color:var(--muted)}
+    .btn{display:inline-flex;align-items:center;justify-content:center;border:0;border-radius:999px;background:var(--navy);color:white;padding:13px 22px;font-weight:700;text-decoration:none;transition:.2s}.btn:hover{background:var(--blue)}.btn.light{background:white;color:var(--navy);border:1px solid var(--line)}.btn.light:hover{background:var(--sky)}.btn:disabled{opacity:.45;cursor:not-allowed}
+    .facts{list-style:none;padding:0;margin:20px 0 26px;display:grid;gap:10px}.facts li{display:flex;gap:10px;align-items:flex-start}.facts b{color:var(--navy)}
+    .progress-top{display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:.85rem;color:var(--muted);font-weight:700}.bar{height:8px;background:#edf1f5;border-radius:20px;overflow:hidden;margin:10px 0 26px}.bar span{display:block;height:100%;background:linear-gradient(90deg,#83b9aa,#4f9a84);border-radius:20px;transition:width .3s}
+    .level-tag{display:inline-block;background:var(--sky);color:var(--blue);border-radius:999px;padding:4px 10px;font-size:.75rem;font-weight:800}
+    .question{font-size:clamp(1.3rem,4vw,1.7rem);font-weight:800;color:var(--navy);margin:16px 0 22px;letter-spacing:-.01em}
+    .options{display:grid;grid-template-columns:1fr 1fr;gap:12px}.option{background:#f6f9fc;border:2px solid var(--line);border-radius:16px;padding:16px;font-size:1.15rem;font-weight:700;color:var(--ink);text-align:left;transition:.15s}.option:hover:not(:disabled){border-color:#9cc0e3;background:white}.option.picked{border-color:var(--blue);background:var(--sky)}.option:disabled{cursor:default}
+    .q-actions{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:22px;flex-wrap:wrap}.skip{background:none;border:0;color:var(--muted);font-weight:700;text-decoration:underline}
+    .result-badge{display:inline-flex;align-items:center;gap:8px;background:#fff6dd;border:1px solid #f0dfb6;color:#6b5418;border-radius:999px;padding:7px 14px;font-weight:800;font-size:.85rem}
+    .rec{margin:18px 0;padding:20px;border-radius:18px;background:linear-gradient(135deg,#eaf2fa,#e3f1ec);border:1px solid var(--line)}.rec .course{font-size:.8rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--blue)}.rec h2{margin:6px 0}.rec p{margin:6px 0 0;color:var(--muted)}
+    .bands{list-style:none;padding:0;margin:18px 0;display:grid;gap:8px}.bands li{display:flex;justify-content:space-between;gap:10px;padding:10px 14px;border-radius:12px;background:#f6f9fc;font-size:.92rem}.bands .ok{color:var(--green);font-weight:800}.bands .no{color:var(--red);font-weight:800}.bands .na{color:var(--muted)}
+    .result-actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:22px}.small-note{font-size:.82rem;color:var(--muted);margin-top:18px}
+    sup{font-size:.6em}
+    @media(max-width:560px){.card{padding:22px}.options{grid-template-columns:1fr}.btn{width:100%}}
+  </style>
+</head>
+<body>
+<header><div class="nav"><a class="brand" href="./"><img src="logo.svg" alt="" />APEX TUTORING</a><a class="back" href="./#courses">← Back to courses</a></div></header>
+<main class="wrap">
+  <section class="card view" id="startView">
+    <div class="eyebrow">Free placement quiz</div>
+    <h1>Find your math level.</h1>
+    <p class="muted">A quick check of the skills from Grade 1 through Pre-Algebra. It starts easy and gets harder, and it stops when it finds the right level, so younger students won't see algebra.</p>
+    <ul class="facts">
+      <li>⏱️ <span><b>About 5–10 minutes.</b> Up to 15 questions.</span></li>
+      <li>✏️ <span><b>Scratch paper is fine.</b> No calculator, please.</span></li>
+      <li>🙂 <span><b>Don't know one? That's okay.</b> Tap "I haven't learned this yet". It helps us place you correctly.</span></li>
+    </ul>
+    <button class="btn" type="button" id="startBtn">Start the quiz →</button>
+  </section>
+
+  <section class="card view" id="quizView" hidden>
+    <div class="progress-top"><span id="qCount">Question 1</span><span class="level-tag" id="qLevel"></span></div>
+    <div class="bar"><span id="qBar" style="width:0%"></span></div>
+    <div class="question" id="qText" aria-live="polite"></div>
+    <div class="options" id="qOptions" role="group" aria-label="Answer choices"></div>
+    <div class="q-actions"><button class="skip" type="button" id="skipBtn">I haven't learned this yet</button><button class="btn" type="button" id="nextBtn" disabled>Next →</button></div>
+  </section>
+
+  <section class="card view" id="resultView" hidden>
+    <span class="result-badge" id="scoreBadge"></span>
+    <div class="rec"><div class="course" id="recCourse"></div><h2 id="recLevel"></h2><p id="recWhy"></p></div>
+    <h3 style="color:var(--navy);margin:0">How each level went</h3>
+    <ul class="bands" id="bandList"></ul>
+    <div class="result-actions">
+      <a class="btn" id="sendBtn" href="./#contact">Book a free intro call with this result →</a>
+      <button class="btn light" type="button" id="retryBtn">Retake quiz</button>
+    </div>
+    <p class="small-note">This quiz is a starting point. Veer will confirm the right level during your free 15–20 minute intro call.</p>
+  </section>
+</main>
+<script>
+  // Five levels, three questions each. Answers are the first option; options are shuffled on screen.
+  const BANDS = [
+    { name: "Grades 1–2", course: "Elementary School Math", level: "Grades 1–2 foundations", questions: [
+      { q: "7 + 5 = ?", a: ["12", "11", "13", "2"] },
+      { q: "15 − 8 = ?", a: ["7", "8", "6", "23"] },
+      { q: "Which number has 4 tens and 6 ones?", a: ["46", "64", "10", "406"] } ] },
+    { name: "Grade 3", course: "Elementary School Math", level: "Grade 3", questions: [
+      { q: "6 × 7 = ?", a: ["42", "36", "48", "13"] },
+      { q: "36 ÷ 4 = ?", a: ["9", "8", "7", "32"] },
+      { q: "A rectangle is 5 cm long and 3 cm wide. What is its area?", a: ["15 square cm", "8 square cm", "16 square cm", "30 square cm"] } ] },
+    { name: "Grades 4–5", course: "Elementary School Math", level: "Grades 4–5", questions: [
+      { q: "Which fraction is equal to 3/4?", a: ["6/8", "3/8", "4/3", "7/8"] },
+      { q: "2.5 + 1.75 = ?", a: ["4.25", "3.30", "4.15", "3.75"] },
+      { q: "1/2 × 3/5 = ?", a: ["3/10", "4/7", "3/5", "5/6"] } ] },
+    { name: "Grades 6–7", course: "Middle School Math", level: "Grade 6 / Grade 7 Math", questions: [
+      { q: "What is 20% of 45?", a: ["9", "20", "4.5", "90"] },
+      { q: "−8 + 5 = ?", a: ["−3", "3", "−13", "13"] },
+      { q: "Solve for x:  2x + 6 = 14", a: ["x = 4", "x = 10", "x = 8", "x = 3"] } ] },
+    { name: "Pre-Algebra", course: "Middle School Math", level: "Pre-Algebra", questions: [
+      { q: "What is the slope of the line through (1, 2) and (3, 8)?", a: ["3", "1/3", "6", "2"] },
+      { q: "3² × 3³ = ?", a: ["3⁵", "3⁶", "9⁵", "6⁵"] },
+      { q: "A right triangle has legs 6 and 8. How long is the hypotenuse?", a: ["10", "14", "12", "48"] } ] },
+  ];
+  const TOTAL = BANDS.reduce((n, b) => n + b.questions.length, 0);
+  const $ = (id) => document.getElementById(id);
+  let band, qi, picked, results, asked;
+
+  function shuffle(arr) { const a = [...arr]; for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+  function show(id) { ["startView", "quizView", "resultView"].forEach((v) => ($(v).hidden = v !== id)); window.scrollTo(0, 0); }
+
+  function start() { band = 0; qi = 0; asked = 0; results = BANDS.map(() => null); results[0] = 0; show("quizView"); render(); }
+
+  function render() {
+    const b = BANDS[band], item = b.questions[qi];
+    picked = null; $("nextBtn").disabled = true;
+    $("qCount").textContent = `Question ${asked + 1}`;
+    $("qLevel").textContent = b.name;
+    $("qBar").style.width = Math.round((asked / TOTAL) * 100) + "%";
+    $("qText").textContent = item.q;
+    const box = $("qOptions"); box.replaceChildren();
+    shuffle(item.a).forEach((opt) => {
+      const btn = document.createElement("button");
+      btn.type = "button"; btn.className = "option"; btn.textContent = opt;
+      btn.addEventListener("click", () => {
+        picked = opt; box.querySelectorAll(".option").forEach((o) => o.classList.toggle("picked", o === btn));
+        $("nextBtn").disabled = false;
+      });
+      box.append(btn);
+    });
+  }
+
+  function answer(correct) {
+    if (correct) results[band]++;
+    asked++; qi++;
+    if (qi < BANDS[band].questions.length) return render();
+    // Finished this level: need 2 of 3 to move up.
+    if (results[band] >= 2 && band < BANDS.length - 1) { band++; qi = 0; results[band] = 0; return render(); }
+    finish();
+  }
+
+  function finish() {
+    const passedAll = results.every((r) => r !== null && r >= 2);
+    const stuck = passedAll ? null : results.findIndex((r) => r !== null && r < 2);
+    const correct = results.reduce((n, r) => n + (r || 0), 0);
+    let course, level, why;
+    if (passedAll) { course = "Middle School Math + Competition Math"; level = "Advanced Pre-Algebra"; why = "Strong work at every level! We'll build on Pre-Algebra and add challenge problems and competition strategies."; }
+    else { const b = BANDS[stuck]; course = b.course; level = b.level; why = stuck === 0 ? "We'll build a strong foundation in counting, adding, subtracting, and place value." : `Solid skills through ${BANDS[stuck - 1].name}. ${b.name} is the right place to keep growing.`; }
+
+    $("scoreBadge").textContent = `🎯 ${correct} of ${asked} correct`;
+    $("recCourse").textContent = course; $("recLevel").textContent = "Recommended: " + level; $("recWhy").textContent = why;
+    const list = $("bandList"); list.replaceChildren();
+    BANDS.forEach((b, i) => {
+      const li = document.createElement("li"), name = document.createElement("span"), res = document.createElement("span");
+      name.textContent = b.name;
+      if (results[i] === null) { res.className = "na"; res.textContent = "Not reached"; }
+      else { res.className = results[i] >= 2 ? "ok" : "no"; res.textContent = `${results[i]}/3 ${results[i] >= 2 ? "✓" : "· start here"}`; }
+      li.append(name, res); list.append(li);
+    });
+    const params = new URLSearchParams({ quiz: `${level} (${correct}/${asked} correct)`, course });
+    $("sendBtn").href = "./?" + params.toString() + "#contact";
+    $("qBar").style.width = "100%";
+    show("resultView");
+  }
+
+  $("startBtn").addEventListener("click", start);
+  $("retryBtn").addEventListener("click", start);
+  $("nextBtn").addEventListener("click", () => { const item = BANDS[band].questions[qi]; answer(picked === item.a[0]); });
+  $("skipBtn").addEventListener("click", () => answer(false));
+</script>
+</body>
+</html>
