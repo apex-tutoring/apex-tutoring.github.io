@@ -120,7 +120,7 @@
   <section id="portal"><div class="wrap">
     <div class="section-head"><div class="eyebrow">Apex learning portal</div><h2>Progress you can see.</h2><p>Each student and their parent share one account to follow learning goals, session notes, and progress. Veer adds updates after every lesson.</p></div>
     <div class="portal-wrap">
-      <article class="portal-panel"><div class="iconbox">🎓</div><h3>Student &amp; Parent Account</h3><p>One shared login for the student and their parent or guardian.</p><ul class="update-list"><li>Course progress and learning goals</li><li>Tutor feedback and session notes</li><li>Topics mastered and topics to practice</li><li>Completed sessions</li></ul><div class="portal-actions"><button class="portal-btn primary" type="button" id="loginBtn">Log in</button><button class="portal-btn" type="button" id="showStudent" aria-expanded="false">See a sample dashboard</button></div><div class="notice" id="loginNotice" hidden>Portal accounts are created after your first session. Your login details will be sent to you by email.</div></article>
+      <article class="portal-panel"><div class="iconbox">🎓</div><h3>Student &amp; Parent Account</h3><p>One shared login for the student and their parent or guardian.</p><ul class="update-list"><li>Course progress and learning goals</li><li>Tutor feedback and session notes</li><li>Topics mastered and topics to practice</li><li>Completed sessions</li></ul><div class="portal-actions"><a class="portal-btn primary" href="portal.html">Log in</a><button class="portal-btn" type="button" id="showStudent" aria-expanded="false">See a sample dashboard</button></div><div class="notice">Portal accounts are created after your first session. You'll get an email with a link to set your password.</div></article>
       <article class="portal-panel"><div class="iconbox">📝</div><h3>Updated after every session</h3><p>After each lesson, your tutor records:</p><ul class="update-list"><li>Topics covered that day</li><li>Each skill marked as practicing or mastered</li><li>Encouraging feedback</li><li>A goal for the next session</li></ul><p>Only your tutor can edit progress. Families can view it anytime.</p></article>
     </div>
     <div class="portal-view" id="studentView" hidden>
@@ -183,7 +183,6 @@
   document.querySelectorAll('[data-interest]').forEach(a=>a.addEventListener('click',()=>{interestSelect.value=a.dataset.interest}));
 
   // Portal
-  document.getElementById('loginBtn').addEventListener('click',()=>{document.getElementById('loginNotice').hidden=false});
   const showStudent=document.getElementById('showStudent'),studentView=document.getElementById('studentView');
   showStudent.addEventListener('click',()=>{studentView.hidden=!studentView.hidden;showStudent.classList.toggle('active',!studentView.hidden);showStudent.setAttribute('aria-expanded',String(!studentView.hidden));if(!studentView.hidden)studentView.scrollIntoView({behavior:'smooth',block:'nearest'})});
 
