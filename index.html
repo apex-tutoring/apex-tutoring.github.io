@@ -28,6 +28,7 @@
     @keyframes icube-fold{0%,12%{transform:rotateY(0deg)}42%,58%{transform:rotateY(-180deg)}88%,100%{transform:rotateY(0deg)}}
     @media(prefers-reduced-motion:reduce){.icube,.hinge{animation:none}.icube{transform:rotateX(-24deg) rotateY(35deg)}}
     .product-art .cube-caption{position:absolute;bottom:12px;left:0;right:0;text-align:center;font-size:.75rem;font-weight:700;color:var(--muted)}
+    .booking{scroll-margin-top:80px;background:white;border-radius:22px;padding:22px 22px 6px;margin-bottom:20px;color:var(--ink)}.booking-head{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:8px}.booking-head h3{margin:0;color:var(--navy);font-size:1.25rem}.booking-head p{margin:4px 0 0;color:var(--muted);font-size:.93rem}.contact .booking .btn{background:var(--navy);color:white}.calendly-inline-widget{min-width:280px;height:680px;overflow:hidden}.or-line{color:#c1ccda;font-weight:700;margin:6px 0 14px}
     footer{padding:28px 0;color:var(--muted);font-size:.85rem}.footer-inner{display:flex;justify-content:space-between;align-items:center;gap:15px;flex-wrap:wrap}.footer-brand{display:flex;align-items:center;gap:10px;font-weight:800;color:var(--navy)}.footer-brand img{width:28px;height:28px}
     @media(max-width:980px){.price-grid{grid-template-columns:1fr 1fr}}
     @media(max-width:850px){.hero-grid,.about-grid,.portal-wrap,.shop-grid,.contact-grid{grid-template-columns:1fr;gap:30px}.visual{min-height:300px}.grid-3,.grid-2{grid-template-columns:1fr 1fr}.policy-grid{grid-template-columns:1fr}.links{gap:14px}.links a{font-size:.85rem}.nav-cta{display:none}}
@@ -40,7 +41,7 @@
     <a class="brand" href="#home" aria-label="Apex Tutoring home"><img src="logo.svg" alt="" /><span>APEX TUTORING</span></a>
     <button class="menu" id="menuBtn" aria-label="Open navigation" aria-expanded="false">☰</button>
     <nav class="links" id="navLinks"><a href="#about">About</a><a href="#courses">Courses</a><a href="#pricing">Pricing</a><a href="#portal">Student Portal</a><a href="#shop">Shop</a><a href="#contact">Contact</a></nav>
-    <a class="nav-cta" href="#contact">Book a free intro call&nbsp; →</a>
+    <a class="nav-cta" href="#book">Book a free intro call&nbsp; →</a>
   </div>
 </header>
 <main>
@@ -49,7 +50,7 @@
       <div class="eyebrow">Math tutoring · Grades 1–8</div>
       <h1>Make math click.<br><span>Reach your peak.</span></h1>
       <p class="lead">Personalized tutoring from elementary math through pre-algebra, built around each student's pace, with the tricks and strategies that make problems easier to solve.</p>
-      <div class="actions"><a class="btn" href="#contact">Book a free intro call&nbsp; →</a><a class="btn secondary" href="quiz.html">Take the placement quiz</a></div>
+      <div class="actions"><a class="btn" href="#book">Book a free intro call&nbsp; →</a><a class="btn secondary" href="quiz.html">Take the placement quiz</a></div>
       <ul class="hero-facts"><li>Online &amp; in person</li><li>Free 15–20 min intro call</li><li>Packages &amp; discounts</li></ul>
     </div>
     <div class="visual" aria-hidden="true"><div class="float-tag tag-one">✦ Learn at your pace</div><div class="math-card"><div class="small">Today's progress</div><div class="equation">3x + 5 = 20</div><div class="progress"><i></i></div><p>x = 5. One step at a time. You've got this.</p></div><div class="float-tag tag-two">🏆 Competition-tested</div></div>
@@ -111,7 +112,7 @@
   <section class="soft" id="pricing"><div class="wrap">
     <div class="section-head"><div class="eyebrow">Pricing</div><h2>Flexible options for every level.</h2><p>Sessions typically range from <strong>$15–30</strong>, depending on math level and goals. Reach out for an exact quote. Packages and discounts are available.</p></div>
     <div class="price-grid">
-      <article class="price-card"><h3>Intro call</h3><div class="price">Free</div><p>A 15–20 minute call to talk about goals and current math level.</p><ul><li>Meet your tutor</li><li>Discuss goals &amp; challenges</li><li>Find the right level</li></ul><a class="btn secondary" href="#contact" data-interest="Free intro call">Book intro call</a></article>
+      <article class="price-card"><h3>Intro call</h3><div class="price">Free</div><p>A 15–20 minute call to talk about goals and current math level.</p><ul><li>Meet your tutor</li><li>Discuss goals &amp; challenges</li><li>Find the right level</li></ul><a class="btn secondary" href="#book">Book intro call</a></article>
       <article class="price-card featured"><span class="popular">Most popular</span><h3>1-on-1 session</h3><div class="price">$15–30 <small>/ session</small></div><p>Personalized tutoring, priced by math level and progress.</p><ul><li>Elementary through pre-algebra</li><li>Online or in person</li><li>Homework help or skill-building</li></ul><a class="btn" href="#contact" data-interest="1-on-1 tutoring">Get a quote</a></article>
       <article class="price-card"><h3>Small group</h3><div class="price">Contact <small>for pricing</small></div><p>Learn with friends working on similar skills.</p><ul><li>Collaborative practice</li><li>Group coordinates a shared time before scheduling</li><li>Great value per student</li></ul><a class="btn secondary" href="#contact" data-interest="Small group">Ask about groups</a></article>
       <article class="price-card"><h3>Packages &amp; programs</h3><div class="price">Save <small>with discounts</small></div><p>Multi-week programs with a set number of sessions.</p><ul><li>Fixed multi-week schedules</li><li>Steady, measurable progress</li><li>Discounted rate</li></ul><a class="btn secondary" href="#contact" data-interest="Packages / multi-week program">Ask about packages</a></article>
@@ -151,7 +152,12 @@
   </div></section>
 
   <section class="contact" id="contact"><div class="wrap">
-    <div class="section-head"><div class="eyebrow" style="color:#b9d2ec">Get in touch</div><h2>Let's make math feel more manageable.</h2><p>Questions about tutoring, pricing, or the shop? Send a message to book your free intro call.</p></div>
+    <div class="section-head"><div class="eyebrow" style="color:#b9d2ec">Get in touch</div><h2>Let's make math feel more manageable.</h2><p>Book a free intro call below, or send a message with any questions about tutoring, pricing, or the shop.</p></div>
+    <div class="booking" id="book">
+      <div class="booking-head"><div><h3>📅 Book your free intro call</h3><p>Pick a time that works. 20 minutes on Google Meet to talk about goals and the right level.</p></div><a class="btn" href="https://calendly.com/team-apextutoring/30min" target="_blank" rel="noopener">Open in a new tab ↗</a></div>
+      <div class="calendly-inline-widget" data-url="https://calendly.com/team-apextutoring/30min?hide_gdpr_banner=1&amp;hide_event_type_details=1&amp;primary_color=315f91"></div>
+    </div>
+    <p class="or-line">Have a question first? Send us a message.</p>
     <div class="contact-grid">
       <div class="contact-box"><h3>Email us</h3><p>We usually reply within a day.</p><a class="email-link" href="mailto:team.apextutoring@gmail.com">team.apextutoring@gmail.com</a>
         <ol class="contact-steps"><li><b>1</b><span>Send a message with the student's grade and what they need help with.</span></li><li><b>2</b><span>We set up a free 15–20 minute intro call.</span></li><li><b>3</b><span>We pick a level, schedule sessions, and you get your portal login.</span></li></ol>
@@ -198,7 +204,7 @@
 
   // Contact form: delivered to team.apextutoring@gmail.com by Web3Forms (web3forms.com).
   // The access key is public by design; it only lets the form send to the Apex inbox.
-  const WEB3FORMS_KEY='PASTE_WEB3FORMS_KEY';
+  const WEB3FORMS_KEY='e3cecee5-c21d-4562-b14f-508c7e2b2dcb';
   const inquiryForm=document.getElementById('inquiryForm'),sendBtn=document.getElementById('sendBtn'),formStatus=document.getElementById('formStatus');
   function setStatus(t,k){formStatus.textContent=t;formStatus.className='form-note'+(k?' '+k:'')}
   inquiryForm.addEventListener('submit',async e=>{
@@ -224,5 +230,6 @@
   if(qp.get('quiz')){const r=qp.get('quiz').slice(0,120);document.getElementById('quizField').value=r;const b=document.getElementById('quizBanner');b.textContent='🎯 Placement quiz result: '+r+' (included in your message)';b.hidden=false;interestSelect.value='Free intro call';}
   document.getElementById('year').textContent=new Date().getFullYear();
 </script>
+<script src="https://assets.calendly.com/assets/external/widget.js" async></script>
 </body>
 </html>
