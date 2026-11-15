@@ -11,6 +11,10 @@ const SDK = "https://www.gstatic.com/firebasejs/10.12.2/";
 // These IDs are public by design. Leave as PASTE_… to turn emails off.
 const EMAILJS = { service: "apex_gmail", template: "family_update", publicKey: "EiIbnInZ3MH-0EpaB" };
 const PORTAL_URL = "https://apex-tutoring.github.io/portal.html";
+const SITE = "https://apex-tutoring.github.io/";
+// Free worksheet packs that can be assigned as homework (files live in /worksheets)
+const PACKS = { "grades-1-2": "Grades 1–2 pack", "grade-3": "Grade 3 pack", "grades-4-5": "Grades 4–5 pack",
+  "grades-6-7": "Grades 6–7 pack", "pre-algebra": "Pre-Algebra pack", "competition": "Competition Math pack" };
 const TUTOR_EMAIL = "team.apextutoring@gmail.com";
 async function emailFamily(student, subject, message, toEmail = student.familyEmail) {
   if (EMAILJS.service.startsWith("PASTE")) throw new Error("Email notifications aren't set up yet.");
@@ -116,22 +120,50 @@ async function start() {
     const d = new Date(s.nextSession);
     return isNaN(d) ? null : d.toLocaleString(undefined, { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
   }
-  function updateBody(u) {
+  function hasHomework(u) { return !!(u.homework || u.homeworkLink || PACKS[u.worksheet]); }
+  // opts: { studentId, role: "teacher" | "family" }
+  function updateBody(u, opts = {}) {
     const link = safeUrl(u.homeworkLink || "");
+    const pack = PACKS[u.worksheet];
+    let hw = null;
+    if (hasHomework(u)) {
+      hw = el("div", { class: "hw" + (u.homeworkDone ? " done" : "") },
+        el("div", {}, el("strong", { text: "📝 Homework: " }), u.homework || ""),
+        pack ? el("div", {}, el("a", { href: `worksheets/${u.worksheet}.html`, target: "_blank", rel: "noopener", text: `📄 ${pack}: open & print ↗` })) : null,
+        link ? el("div", {}, el("a", { href: link, target: "_blank", rel: "noopener noreferrer", text: "🔗 Open worksheet link ↗" })) : null);
+      if (opts.role === "family" && opts.studentId) {
+        const box = el("input", { type: "checkbox" }); box.checked = !!u.homeworkDone;
+        const lbl = el("label", { class: "check hw-check" }, box, u.homeworkDone ? "Done ✓" : "Mark as done");
+        box.addEventListener("change", async () => {
+          box.disabled = true;
+          try {
+            await F.updateDoc(F.doc(db, "students", opts.studentId, "updates", u.id), { homeworkDone: box.checked, homeworkDoneAt: F.serverTimestamp() });
+            u.homeworkDone = box.checked; lbl.lastChild.textContent = box.checked ? "Done ✓" : "Mark as done"; hw.classList.toggle("done", box.checked);
+          } catch (e) { box.checked = !box.checked; lbl.lastChild.textContent = friendly(e); }
+          finally { box.disabled = false; }
+        });
+        hw.append(lbl);
+      } else if (opts.role === "teacher") {
+        hw.append(el("span", { class: "hw-status " + (u.homeworkDone ? "yes" : "no"),
+          text: u.homeworkDone ? `✓ Done${u.homeworkDoneAt ? " · " + fmtDate(u.homeworkDoneAt) : ""}` : "Not marked done yet" }));
+      }
+    }
     return [
       el("strong", { text: u.topic || "Session" }), u.status ? el("span", { class: pillClass(u.status), text: u.status }) : null,
       el("time", { text: "  " + fmtDate(u.createdAt) }),
-      u.note ? el("p", { text: u.note }) : null,
-      u.homework || link ? el("div", { class: "hw" }, el("strong", { text: "📝 Practice: " }), u.homework || "",
-        link ? el("a", { href: link, target: "_blank", rel: "noopener noreferrer", text: (u.homework ? " · " : "") + "Open worksheet ↗" }) : null) : null,
+      u.note ? el("p", { text: u.note }) : null, hw,
     ];
   }
-  // opts.studentId turns on the teacher's Edit / Delete buttons.
+  function packSelect(name, current) {
+    return el("select", { name }, [["", "None"], ...Object.entries(PACKS)].map(([v, t]) => {
+      const o = el("option", { value: v, text: t }); if (v === (current || "")) o.selected = true; return o; }));
+  }
+  // opts: { studentId, role }. role "teacher" adds Edit / Delete; role "family" adds homework check-off.
   function updatesList(updates, opts = {}) {
     if (!updates.length) return el("p", { class: "empty", text: "No session notes yet." });
     return el("div", { class: "updates" }, updates.map((u) => {
-      const art = el("article", {}, updateBody(u));
-      if (opts.studentId) art.append(noteActions(opts.studentId, u, art));
+      const art = el("article", {}, updateBody(u, opts));
+      if (opts.role === "teacher") art.append(noteActions(opts.studentId, u, art));
       return art;
     }));
   }
@@ -149,15 +181,16 @@ async function start() {
           const opt = el("option", { text: o }); if (o === u.status) opt.selected = true; return opt; }))),
         el("label", { class: "full" }, "Session note", el("textarea", { name: "note", maxlength: "600" }, u.note || "")),
         el("label", { class: "full" }, "Practice / homework", el("input", { name: "homework", maxlength: "200", value: u.homework || "" })),
-        el("label", { class: "full" }, "Worksheet link", el("input", { name: "homeworkLink", type: "url", maxlength: "400", value: u.homeworkLink || "", placeholder: "https://…" })),
+        el("label", {}, "Worksheet pack", packSelect("worksheet", u.worksheet)),
+        el("label", {}, "Worksheet link", el("input", { name: "homeworkLink", type: "url", maxlength: "400", value: u.homeworkLink || "", placeholder: "https://…" })),
         el("div", { class: "row full" }, el("button", { class: "btn small", type: "submit", text: "Save changes" }),
-          el("button", { class: "btn light small", type: "button", text: "Cancel", onclick: () => art.replaceChildren(...updateBody(u), noteActions(studentId, u, art)) })));
+          el("button", { class: "btn light small", type: "button", text: "Cancel", onclick: () => art.replaceChildren(...updateBody(u, { studentId, role: "teacher" }), noteActions(studentId, u, art)) })));
       f.addEventListener("submit", async (e) => {
         e.preventDefault(); const d = new FormData(f);
         const link = d.get("homeworkLink").trim();
         if (link && !safeUrl(link)) { alertMsg(f, "Links must start with https://"); return; }
         try {
-          await F.updateDoc(ref, { topic: d.get("topic").trim(), status: d.get("status"), note: d.get("note").trim(), homework: d.get("homework").trim(), homeworkLink: link });
+          await F.updateDoc(ref, { topic: d.get("topic").trim(), status: d.get("status"), note: d.get("note").trim(), homework: d.get("homework").trim(), homeworkLink: link, worksheet: d.get("worksheet") || "" });
           await openStudent(studentId);
         } catch (err) { alertMsg(f, friendly(err)); }
       });
@@ -184,6 +217,74 @@ async function start() {
       el("div", { class: "bar" }, el("span", { style: `width:${pct}%` })),
       s.nextGoal ? el("div", { class: "goal" }, el("strong", { text: "Next goal: " }), s.nextGoal) : null,
     ];
+  }
+
+  // ---------- Progress chart: topics mastered over time (one series, so no legend) ----------
+  const SVGNS = "http://www.w3.org/2000/svg";
+  function svg(tag, attrs = {}) { const n = document.createElementNS(SVGNS, tag); for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, v); return n; }
+  function progressChart(updates) {
+    const asc = [...updates].filter((u) => u.createdAt?.toDate).sort((a, b) => a.createdAt.toMillis() - b.createdAt.toMillis());
+    if (asc.length < 2) return el("p", { class: "empty", text: "Your progress chart appears after two sessions." });
+    const latest = new Map(); const pts = asc.map((u) => {
+      if (u.topic) latest.set(u.topic.toLowerCase(), u.status);
+      return { d: u.createdAt.toDate(), v: [...latest.values()].filter((x) => x === "Mastered").length, topic: u.topic || "Session", status: u.status || "" };
+    });
+    const W = 380, H = 200, L = 28, R = 12, T = 16, B = 28;
+    const t0 = pts[0].d.getTime(), t1 = Math.max(pts.at(-1).d.getTime(), t0 + 1);
+    const maxV = Math.max(2, ...pts.map((p) => p.v));
+    const x = (d) => L + ((d.getTime() - t0) / (t1 - t0)) * (W - L - R), y = (v) => T + (1 - v / maxV) * (H - T - B);
+    const root = svg("svg", { viewBox: `0 0 ${W} ${H}`, class: "pchart", role: "group", "aria-label": `Topics mastered over time: ${pts.at(-1).v} so far` });
+    const step = Math.max(1, Math.ceil(maxV / 4));
+    for (let v = 0; v <= maxV; v += step) {
+      root.append(svg("line", { x1: L, x2: W - R, y1: y(v), y2: y(v), class: "grid" }));
+      const t = svg("text", { x: L - 8, y: y(v) + 4, class: "tick", "text-anchor": "end" }); t.textContent = v; root.append(t);
+    }
+    const fmt = (d) => d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+    [[pts[0].d, "start"], [pts.at(-1).d, "end"]].forEach(([d, a]) => { const t = svg("text", { x: x(d), y: H - 8, class: "tick", "text-anchor": a }); t.textContent = fmt(d); root.append(t); });
+    // step line: the count only changes at a session
+    let path = `M${x(pts[0].d)},${y(pts[0].v)}`; for (let i = 1; i < pts.length; i++) path += `H${x(pts[i].d)}V${y(pts[i].v)}`;
+    root.append(svg("path", { d: path, class: "line" }));
+    const wrap = el("div", { class: "pchart-wrap" }); const tip = el("div", { class: "ptip", role: "status" }); tip.hidden = true;
+    pts.forEach((p) => {
+      root.append(svg("circle", { cx: x(p.d), cy: y(p.v), r: 4, class: "dot" }));
+      const hit = svg("circle", { cx: x(p.d), cy: y(p.v), r: 14, class: "hit", tabindex: "0", role: "button", "aria-label": `${fmt(p.d)}: ${p.topic} (${p.status}). ${p.v} topics mastered` });
+      const show = () => { tip.hidden = false; tip.replaceChildren(el("strong", { text: `${p.v} mastered` }), el("span", { text: `${fmt(p.d)} · ${p.topic}${p.status ? " (" + p.status + ")" : ""}` }));
+        tip.style.left = `${(x(p.d) / W) * 100}%`; tip.style.top = `${(y(p.v) / H) * 100}%`; };
+      hit.addEventListener("mouseenter", show); hit.addEventListener("focus", show);
+      hit.addEventListener("mouseleave", () => (tip.hidden = true)); hit.addEventListener("blur", () => (tip.hidden = true));
+      root.append(hit);
+    });
+    wrap.append(root, tip);
+    return el("div", {}, el("p", { class: "chart-title", text: "Topics mastered over time" }), wrap);
+  }
+
+  // ---------- Session calendar: past sessions (dots) + next session (ring) ----------
+  function sessionCalendar(s, updates) {
+    const sessions = new Map();
+    updates.forEach((u) => { const d = u.createdAt?.toDate?.(); if (!d) return; const k = d.toDateString(); sessions.set(k, [...(sessions.get(k) || []), u.topic || "Session"]); });
+    const next = s.nextSession ? new Date(s.nextSession) : null;
+    let month = new Date(); month.setDate(1);
+    const box = el("div", { class: "cal" });
+    function render() {
+      const y = month.getFullYear(), m = month.getMonth(), first = new Date(y, m, 1).getDay(), days = new Date(y, m + 1, 0).getDate();
+      const today = new Date().toDateString();
+      const cells = [];
+      for (let i = 0; i < first; i++) cells.push(el("span", { class: "day blank" }));
+      for (let d = 1; d <= days; d++) {
+        const k = new Date(y, m, d).toDateString(), past = sessions.get(k), isNext = next && next.toDateString() === k;
+        const label = [past ? `Session: ${past.join(", ")}` : "", isNext ? `Next session ${fmtSession(s)}` : ""].filter(Boolean).join(". ");
+        cells.push(el("span", { class: "day" + (past ? " had" : "") + (isNext ? " next" : "") + (k === today ? " today" : ""), title: label, "aria-label": `${d}${label ? ". " + label : ""}` }, String(d)));
+      }
+      box.replaceChildren(
+        el("div", { class: "cal-head" },
+          el("button", { type: "button", class: "cal-nav", "aria-label": "Previous month", text: "‹", onclick: () => { month.setMonth(month.getMonth() - 1); render(); } }),
+          el("strong", { text: month.toLocaleDateString(undefined, { month: "long", year: "numeric" }) }),
+          el("button", { type: "button", class: "cal-nav", "aria-label": "Next month", text: "›", onclick: () => { month.setMonth(month.getMonth() + 1); render(); } })),
+        el("div", { class: "cal-grid" }, ["S", "M", "T", "W", "T", "F", "S"].map((d) => el("span", { class: "dow", text: d })), cells),
+        el("div", { class: "cal-key" }, el("span", {}, el("i", { class: "k had" }), "Session held"), el("span", {}, el("i", { class: "k next" }), "Next session")));
+    }
+    render();
+    return box;
   }
 
   // ---------- Messages (live chat between tutor and family) ----------
@@ -251,9 +352,35 @@ async function start() {
       box.append(el("article", { class: "card" },
         el("h2", { text: s.name }), el("p", { class: "muted", style: "margin:0", text: `${s.grade} · ${s.course}` }),
         progressBlock(s, updates),
+        el("div", { class: "viz-row" }, el("div", {}, progressChart(updates)), el("div", {}, el("p", { class: "chart-title", text: "Session calendar" }), sessionCalendar(s, updates))),
         el("h3", { style: "margin-top:16px", text: "💬 Messages with your tutor" }), messageThread({ id: d.id, ...s }, "family"),
-        el("h3", { style: "margin-top:20px", text: "Tutor updates" }), updatesList(updates)));
+        el("h3", { style: "margin-top:20px", text: "Tutor updates & homework" }), updatesList(updates, { studentId: d.id, role: "family" })));
     }
+    box.append(await reviewCard(user, snap.docs[0].data()));
+  }
+
+  // ---------- Reviews (families write one; the tutor approves before it shows on the homepage) ----------
+  async function reviewCard(user, firstStudent) {
+    const ref = F.doc(db, "testimonials", user.uid);
+    let existing = null; try { const r = await F.getDoc(ref); if (r.exists()) existing = r.data(); } catch {}
+    const status = el("p", { class: "msg", role: "status" });
+    if (existing) setMsg(status, existing.approved ? "✓ Your review is on the Apex homepage. Thank you!" : "Thanks! Your review is waiting for Veer's approval.", existing.approved ? "ok" : "info");
+    const stars = el("select", { name: "rating", "aria-label": "Rating" }, [5, 4, 3, 2, 1].map((n) => { const o = el("option", { value: String(n), text: "★".repeat(n) + "☆".repeat(5 - n) }); if (existing && existing.rating === n) o.selected = true; return o; }));
+    const form = el("form", { class: "form-grid" },
+      el("label", {}, "Your rating", stars),
+      el("label", {}, "Name to show", el("input", { name: "name", required: "", maxlength: "60", value: existing?.name || `Parent of a ${firstStudent.grade || ""} student`.replace("  ", " ") })),
+      el("label", { class: "full" }, "Your review", el("textarea", { name: "text", required: "", minlength: "10", maxlength: "600", placeholder: "How has tutoring with Veer helped your student?" }, existing?.text || "")),
+      el("div", { class: "row full" }, el("button", { class: "btn small", type: "submit", text: existing ? "Update review" : "Submit review" }), el("small", { class: "muted", text: "Shown on the homepage after Veer approves it. Only the name you enter is shown." })),
+      status);
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault(); const f = new FormData(form);
+      try {
+        await F.setDoc(ref, { name: f.get("name").trim(), rating: Number(f.get("rating")), text: f.get("text").trim(), approved: false, createdAt: F.serverTimestamp() });
+        setMsg(status, "Thanks! Your review is waiting for Veer's approval.", "ok");
+        emailFamily({ name: firstStudent.name }, "New review waiting for approval", `${f.get("name").trim()} left a ${f.get("rating")}-star review:\n\n${f.get("text").trim()}\n\nApprove it in the teacher dashboard.`, TUTOR_EMAIL).catch(() => {});
+      } catch (err) { setMsg(status, friendly(err), "err"); }
+    });
+    return el("article", { class: "card" }, el("h2", { text: "⭐ Leave a review" }), el("p", { class: "muted", style: "margin-top:0", text: "Happy with tutoring? A short review helps other families find Apex." }), form);
   }
 
   // ---------- Teacher view ----------
@@ -281,7 +408,7 @@ async function start() {
   }
 
   async function loadTeacher() {
-    loadStats();
+    loadStats(); loadReviews();
     const snap = await F.getDocs(F.query(F.collection(db, "students"), F.orderBy("name")));
     students = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
     // Flag students whose newest message is from the family and hasn't been seen yet
@@ -329,7 +456,8 @@ async function start() {
       el("label", {}, "Status", el("select", { name: "status" }, ["Practicing", "Mastered", "Needs review"].map((o) => el("option", { text: o })))),
       el("label", { class: "full" }, "Session note", el("textarea", { name: "note", maxlength: "600", placeholder: "What did they work on? What went well?" })),
       el("label", { class: "full" }, "Practice / homework (optional)", el("input", { name: "homework", maxlength: "200", placeholder: "e.g. 10 long division problems, page 3" })),
-      el("label", { class: "full" }, "Worksheet link (optional)", el("input", { name: "homeworkLink", type: "url", maxlength: "400", placeholder: "https://…" })),
+      el("label", {}, "Assign a worksheet pack (optional)", packSelect("worksheet", "")),
+      el("label", {}, "Other worksheet link (optional)", el("input", { name: "homeworkLink", type: "url", maxlength: "400", placeholder: "https://…" })),
       el("label", { class: "full" }, "Next goal (optional)", el("input", { name: "goal", maxlength: "160", value: s.nextGoal || "" })),
       el("label", { class: "check full" }, el("input", { type: "checkbox", name: "counts", checked: "" }), "Count this as a completed session"),
       el("label", { class: "check full" }, el("input", { type: "checkbox", name: "notify", checked: "" }), `Email the family about this update (${s.familyEmail})`),
@@ -343,7 +471,7 @@ async function start() {
       try {
         await F.addDoc(F.collection(db, "students", id, "updates"), {
           topic: f.get("topic").trim(), status: f.get("status"), note: f.get("note").trim(), goal: f.get("goal").trim(),
-          homework: f.get("homework").trim(), homeworkLink: link, createdAt: F.serverTimestamp(),
+          homework: f.get("homework").trim(), homeworkLink: link, worksheet: f.get("worksheet") || "", homeworkDone: false, createdAt: F.serverTimestamp(),
         });
         const patch = { nextGoal: f.get("goal").trim(), lastSession: F.serverTimestamp() };
         if (f.get("counts")) patch.sessions = F.increment(1);
@@ -354,6 +482,7 @@ async function start() {
           const lines = [`New session update for ${s.name}:`, "", `Topic: ${f.get("topic").trim()} (${f.get("status")})`];
           if (f.get("note").trim()) lines.push(`Notes: ${f.get("note").trim()}`);
           if (f.get("homework").trim()) lines.push(`Practice: ${f.get("homework").trim()}`);
+          if (PACKS[f.get("worksheet")]) lines.push(`Worksheet: ${PACKS[f.get("worksheet")]} – ${SITE}worksheets/${f.get("worksheet")}.html`);
           if (link) lines.push(`Worksheet: ${link}`);
           if (f.get("goal").trim()) lines.push(`Next goal: ${f.get("goal").trim()}`);
           try { await emailFamily(s, `New session update for ${s.name}`, lines.join("\n")); note += " Family emailed ✓"; }
@@ -396,13 +525,71 @@ async function start() {
     });
 
     ed.replaceChildren(
-      el("h2", { text: s.name }), el("p", { class: "muted", style: "margin:0", text: `${s.grade} · ${s.course} · ${s.familyEmail}` }), resend,
-      ...progressBlock(s, updates),
+      el("h2", { text: s.name }), el("p", { class: "muted", style: "margin:0", text: `${s.grade} · ${s.course} · ${s.familyEmail}` }),
+      el("div", { class: "row", style: "gap:16px;margin-top:4px" }, resend, studentAdmin(s)),
+      ...progressBlock(s, updates).filter(Boolean),
+      el("div", { class: "viz-row" }, el("div", {}, progressChart(updates)), el("div", {}, el("p", { class: "chart-title", text: "Session calendar" }), sessionCalendar(s, updates))),
       el("div", { class: "row" }, el("strong", { style: "color:var(--navy)", text: "Course progress %" }), progressInput, saveProgress),
       el("h3", { style: "margin-top:20px", text: "Next session" }), nsForm,
       el("h3", { style: "margin-top:20px", text: "Log a session" }), form,
       el("h3", { style: "margin-top:20px", text: "💬 Messages" }), messageThread(s, "teacher"),
-      el("h3", { style: "margin-top:20px", text: "Past updates" }), updatesList(updates, { studentId: id }));
+      el("h3", { style: "margin-top:20px", text: "Past updates" }), updatesList(updates, { studentId: id, role: "teacher" }));
+  }
+
+  // Edit a student's details, or remove the student (and their notes and messages)
+  function studentAdmin(s) {
+    const holder = el("span", {});
+    const editBtn = el("button", { type: "button", class: "linkbtn", text: "Edit details", onclick: () => {
+      const gradeSel = el("select", { name: "grade" }, ["Grade 1", "Grade 2", "Grade 3", "Grade 4", "Grade 5", "Grade 6", "Grade 7", "Pre-Algebra"].map((g) => { const o = el("option", { text: g }); if (g === s.grade) o.selected = true; return o; }));
+      const courseSel = el("select", { name: "course" }, ["Elementary School Math", "Middle School Math", "Test Prep"].map((c) => { const o = el("option", { text: c }); if (c === s.course) o.selected = true; return o; }));
+      const f = el("form", { class: "form-grid edit-form card", style: "margin-top:10px" },
+        el("label", { class: "full" }, "Student name", el("input", { name: "name", required: "", maxlength: "60", value: s.name })),
+        el("label", {}, "Grade", gradeSel), el("label", {}, "Course", courseSel),
+        el("div", { class: "row full" }, el("button", { class: "btn small", type: "submit", text: "Save details" }),
+          el("button", { class: "btn light small", type: "button", text: "Cancel", onclick: () => f.remove() })));
+      f.addEventListener("submit", async (e) => {
+        e.preventDefault(); const d = new FormData(f);
+        try { await F.updateDoc(F.doc(db, "students", s.id), { name: d.get("name").trim(), grade: d.get("grade"), course: d.get("course") }); await loadTeacher(); }
+        catch (err) { alertMsg(f, friendly(err)); }
+      });
+      $("editor").querySelector("h2").after(f);
+    } });
+    let armed = false;
+    const removeBtn = el("button", { type: "button", class: "linkbtn danger", text: "Remove student", onclick: async () => {
+      if (!armed) { armed = true; removeBtn.textContent = `Click again to remove ${s.name} and all their notes`; setTimeout(() => { armed = false; removeBtn.textContent = "Remove student"; }, 5000); return; }
+      removeBtn.disabled = true; removeBtn.textContent = "Removing…";
+      try {
+        for (const sub of ["updates", "messages"]) {
+          const docs = (await F.getDocs(F.collection(db, "students", s.id, sub))).docs;
+          await Promise.all(docs.map((d) => F.deleteDoc(F.doc(db, "students", s.id, sub, d.id))));
+        }
+        await F.deleteDoc(F.doc(db, "students", s.id));
+        stopLive(); selectedId = null;
+        $("editor").replaceChildren(el("p", { class: "msg ok", text: `${s.name} was removed. (Their family login still exists, so you can add a sibling or re-add them later.)` }));
+        await loadTeacher();
+      } catch (err) { removeBtn.disabled = false; removeBtn.textContent = friendly(err); }
+    } });
+    holder.append(editBtn, " ", removeBtn);
+    return holder;
+  }
+
+  // Reviews waiting for approval (teacher)
+  async function loadReviews() {
+    const box = $("reviewsBox"); if (!box) return;
+    try {
+      const snap = await F.getDocs(F.collection(db, "testimonials"));
+      const list = snap.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => (a.approved === b.approved ? 0 : a.approved ? 1 : -1));
+      if (!list.length) { box.replaceChildren(el("p", { class: "empty", text: "No reviews yet. Families can leave one from their dashboard." })); return; }
+      box.replaceChildren(...list.map((r) => {
+        const set = async (approved) => { try { await F.updateDoc(F.doc(db, "testimonials", r.id), { approved }); loadReviews(); } catch (e) { alert(friendly(e)); } };
+        return el("article", { class: "review-row" },
+          el("div", {}, el("strong", { text: `${"★".repeat(r.rating || 5)} ${r.name || ""}` }), el("span", { class: "pill " + (r.approved ? "Mastered" : "Needs"), text: r.approved ? "On homepage" : "Waiting" }),
+            el("p", { text: r.text || "" })),
+          el("div", { class: "row" },
+            r.approved ? el("button", { type: "button", class: "btn light small", text: "Hide", onclick: () => set(false) }) : el("button", { type: "button", class: "btn small", text: "Approve", onclick: () => set(true) }),
+            el("button", { type: "button", class: "linkbtn danger", text: "Delete", onclick: async () => { try { await F.deleteDoc(F.doc(db, "testimonials", r.id)); loadReviews(); } catch (e) { alert(friendly(e)); } } })));
+      }));
+    } catch (e) { box.replaceChildren(el("p", { class: "empty", text: "Reviews couldn't load." })); }
   }
 
   function randomPassword() {

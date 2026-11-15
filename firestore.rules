@@ -30,6 +30,12 @@ service cloud.firestore {
         allow read: if isTeacher() || (signedIn() &&
           get(/databases/$(database)/documents/students/$(studentId)).data.familyUid == request.auth.uid);
         allow write: if isTeacher();
+        // Families can only tick their homework as done / not done.
+        allow update: if signedIn()
+          && get(/databases/$(database)/documents/students/$(studentId)).data.familyUid == request.auth.uid
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['homeworkDone', 'homeworkDoneAt'])
+          && request.resource.data.homeworkDone is bool
+          && request.resource.data.homeworkDoneAt == request.time;
       }
 
       // Messages between the tutor and the family. Each side can only post as itself,
@@ -49,6 +55,21 @@ service cloud.firestore {
         allow create: if (isTeacher() && validMessage('teacher')) || (isFamily() && validMessage('family'));
         allow delete: if isTeacher();
       }
+    }
+
+    // Reviews: one per family (document ID = their login ID). Families write their own,
+    // which always resets to "waiting"; only the tutor can approve. Anyone can read approved ones.
+    match /testimonials/{uid} {
+      allow read: if resource.data.approved == true || isTeacher() || (signedIn() && request.auth.uid == uid);
+      allow create, update: if signedIn() && request.auth.uid == uid && !isTeacher()
+        && request.resource.data.keys().hasOnly(['name', 'rating', 'text', 'approved', 'createdAt'])
+        && request.resource.data.approved == false
+        && request.resource.data.name is string && request.resource.data.name.size() > 0 && request.resource.data.name.size() <= 60
+        && request.resource.data.text is string && request.resource.data.text.size() >= 10 && request.resource.data.text.size() <= 600
+        && request.resource.data.rating is int && request.resource.data.rating >= 1 && request.resource.data.rating <= 5
+        && request.resource.data.createdAt == request.time;
+      allow update: if isTeacher() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['approved']);
+      allow delete: if isTeacher() || (signedIn() && request.auth.uid == uid);
     }
 
     // Website visitor stats: one document per day of plain counters (no personal data).
