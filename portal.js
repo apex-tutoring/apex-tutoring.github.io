@@ -7,6 +7,19 @@
 import { firebaseConfig } from "./firebase-config.js";
 
 const SDK = "https://www.gstatic.com/firebasejs/10.12.2/";
+// EmailJS (emailjs.com) sends "new update" emails to families from team.apextutoring@gmail.com.
+// These IDs are public by design. Leave as PASTE_… to turn emails off.
+const EMAILJS = { service: "PASTE_SERVICE_ID", template: "PASTE_TEMPLATE_ID", publicKey: "PASTE_PUBLIC_KEY" };
+const PORTAL_URL = "https://apex-tutoring.github.io/portal.html";
+async function emailFamily(student, subject, message) {
+  if (EMAILJS.service.startsWith("PASTE")) throw new Error("Email notifications aren't set up yet.");
+  const r = await fetch("https://api.emailjs.com/api/v1.0/email/send", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ service_id: EMAILJS.service, template_id: EMAILJS.template, user_id: EMAILJS.publicKey,
+      template_params: { to_email: student.familyEmail, student_name: student.name, subject, message, portal_link: PORTAL_URL } }),
+  });
+  if (!r.ok) throw new Error("Email didn't send (" + r.status + ").");
+}
 const $ = (id) => document.getElementById(id);
 const views = ["loadingView", "notReadyView", "loginView", "familyView", "teacherView"];
 function show(id) { views.forEach((v) => ($(v).hidden = v !== id)); }
@@ -59,7 +72,7 @@ async function start() {
     e.preventDefault();
     $("loginBtn").disabled = true;
     setMsg($("loginMsg"), "");
-    try { await A.signInWithEmailAndPassword(auth, $("loginEmail").value.trim(), $("loginPassword").value); }
+    try { await A.signInWithEmailAndPassword(auth, $("loginEmail").value.trim(), $("loginPassword").value); window.apexTrack && apexTrack("portal_logins"); }
     catch (err) { setMsg($("loginMsg"), friendly(err), "err"); }
     finally { $("loginBtn").disabled = false; }
   });
@@ -189,7 +202,28 @@ async function start() {
   let students = [];
   let selectedId = null;
 
+  // Website stats (counts written by stats.js; only the teacher can read them)
+  async function loadStats() {
+    const box = $("statsBox"); if (!box) return;
+    try {
+      const days = 30, since = new Date(Date.now() - (days - 1) * 864e5).toISOString().slice(0, 10);
+      const snap = await F.getDocs(F.query(F.collection(db, "stats"), F.where(F.documentId(), ">=", since)));
+      const byDay = Object.fromEntries(snap.docs.map((d) => [d.id, d.data()]));
+      const list = []; for (let i = days - 1; i >= 0; i--) { const k = new Date(Date.now() - i * 864e5).toISOString().slice(0, 10); list.push([k, byDay[k] || {}]); }
+      const sum = (key, n) => list.slice(-n).reduce((t, [, v]) => t + (key === "views" ? Object.entries(v).filter(([k]) => k.startsWith("views_")).reduce((a, [, x]) => a + x, 0) : (v[key] || 0)), 0);
+      const tiles = [["Visitors", "visitors"], ["Page views", "views"], ["Quizzes finished", "quiz_finished"], ["Intro calls booked", "bookings"], ["Messages sent", "messages"], ["Portal logins", "portal_logins"]];
+      const max = Math.max(1, ...list.map(([, v]) => v.visitors || 0));
+      box.replaceChildren(
+        el("div", { class: "stat-tiles" }, tiles.map(([label, key]) => el("div", { class: "stat" },
+          el("strong", { text: String(sum(key, 7)) }), el("span", { text: `${label} · 7 days` }), el("small", { text: `${sum(key, 30)} in 30 days` })))),
+        el("div", { class: "spark", "aria-label": "Visitors per day, last 30 days" }, list.map(([k, v]) =>
+          el("i", { style: `height:${Math.max(4, Math.round(((v.visitors || 0) / max) * 100))}%`, title: `${k}: ${v.visitors || 0} visitors` }))),
+        el("p", { class: "muted", style: "font-size:.8rem;margin:6px 0 0", text: "Visitors per day, last 30 days. Counts only, with no cookies or personal info." }));
+    } catch (e) { box.replaceChildren(el("p", { class: "empty", text: "Stats aren't available yet." })); }
+  }
+
   async function loadTeacher() {
+    loadStats();
     const snap = await F.getDocs(F.query(F.collection(db, "students"), F.orderBy("name")));
     students = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
     renderList();
@@ -230,6 +264,7 @@ async function start() {
       el("label", { class: "full" }, "Worksheet link (optional)", el("input", { name: "homeworkLink", type: "url", maxlength: "400", placeholder: "https://…" })),
       el("label", { class: "full" }, "Next goal (optional)", el("input", { name: "goal", maxlength: "160", value: s.nextGoal || "" })),
       el("label", { class: "check full" }, el("input", { type: "checkbox", name: "counts", checked: "" }), "Count this as a completed session"),
+      el("label", { class: "check full" }, el("input", { type: "checkbox", name: "notify", checked: "" }), `Email the family about this update (${s.familyEmail})`),
       el("button", { class: "btn full", type: "submit", text: "Add update" }), msg);
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
@@ -246,7 +281,17 @@ async function start() {
         if (f.get("counts")) patch.sessions = F.increment(1);
         await F.updateDoc(F.doc(db, "students", id), patch);
         await loadTeacher();
-        setMsg($("logMsg"), "Update added. The family can see it now.", "ok");
+        let note = "Update added. The family can see it now.";
+        if (f.get("notify")) {
+          const lines = [`New session update for ${s.name}:`, "", `Topic: ${f.get("topic").trim()} (${f.get("status")})`];
+          if (f.get("note").trim()) lines.push(`Notes: ${f.get("note").trim()}`);
+          if (f.get("homework").trim()) lines.push(`Practice: ${f.get("homework").trim()}`);
+          if (link) lines.push(`Worksheet: ${link}`);
+          if (f.get("goal").trim()) lines.push(`Next goal: ${f.get("goal").trim()}`);
+          try { await emailFamily(s, `New session update for ${s.name}`, lines.join("\n")); note += " Family emailed ✓"; }
+          catch (mailErr) { note += " (Email not sent: " + mailErr.message + ")"; }
+        }
+        setMsg($("logMsg"), note, "ok");
       } catch (err) { setMsg(msg, friendly(err), "err"); btn.disabled = false; }
     });
 
@@ -256,21 +301,30 @@ async function start() {
     const nsForm = el("form", { class: "form-grid" },
       el("label", {}, "Date & time", el("input", { name: "when", type: "datetime-local", value: s.nextSession || "" })),
       el("label", {}, "Where (optional)", el("input", { name: "where", maxlength: "160", value: s.nextSessionWhere || "", placeholder: "Zoom link or location" })),
+      el("label", { class: "check full" }, el("input", { type: "checkbox", name: "notify", checked: "" }), "Email the family the new session time"),
       el("div", { class: "row full" },
         el("button", { class: "btn small", type: "submit", text: "Save next session" }),
         s.nextSession ? el("button", { class: "btn light small", type: "button", text: "Clear", onclick: () => saveNext("", "") }) : null),
       nsMsg);
-    async function saveNext(when, where) {
+    async function saveNext(when, where, notify = false) {
       try {
         await F.updateDoc(F.doc(db, "students", id), { nextSession: when, nextSessionWhere: where });
         await loadTeacher();
-        setMsg($("nsMsg"), when ? "Next session saved. The family can see it now." : "Next session cleared.", "ok");
+        let note = when ? "Next session saved. The family can see it now." : "Next session cleared.";
+        if (when && notify) {
+          const nice = fmtSession({ nextSession: when });
+          const lines = [`${s.name}'s next tutoring session is scheduled:`, "", `When: ${nice}`];
+          if (where) lines.push(`Where: ${where}`);
+          try { await emailFamily(s, `Next session for ${s.name}: ${nice}`, lines.join("\n")); note += " Family emailed ✓"; }
+          catch (mailErr) { note += " (Email not sent: " + mailErr.message + ")"; }
+        }
+        setMsg($("nsMsg"), note, "ok");
       } catch (err) { setMsg(nsMsg, friendly(err), "err"); }
     }
     nsForm.addEventListener("submit", (e) => {
       e.preventDefault(); const d = new FormData(nsForm);
       if (!d.get("when")) return setMsg(nsMsg, "Pick a date and time first.", "err");
-      saveNext(d.get("when"), d.get("where").trim());
+      saveNext(d.get("when"), d.get("where").trim(), !!d.get("notify"));
     });
 
     ed.replaceChildren(

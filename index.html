@@ -14,6 +14,8 @@
   <meta property="og:title" content="Apex Tutoring – Math tutoring for Grades 1–8" />
   <meta property="og:description" content="Personalized math tutoring from elementary math through pre-algebra. Online and in person. Book a free intro call." />
   <meta property="og:url" content="https://apex-tutoring.github.io/" />
+  <link rel="canonical" href="https://apex-tutoring.github.io/" />
+  <script type="application/ld+json">{"@context": "https://schema.org", "@type": "EducationalOrganization", "name": "Apex Tutoring", "url": "https://apex-tutoring.github.io/", "logo": "https://apex-tutoring.github.io/icon-512.png", "image": "https://apex-tutoring.github.io/og-image.png", "email": "team.apextutoring@gmail.com", "description": "Personalized math tutoring for Grades 1–8, from elementary math through pre-algebra. Online and in person.", "founder": {"@type": "Person", "name": "Veer Shah"}, "sameAs": ["https://calendly.com/team-apextutoring"]}</script>
   <meta property="og:image" content="https://apex-tutoring.github.io/og-image.png" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
@@ -232,7 +234,7 @@
       const j=await r.json().catch(()=>({}));
       if(!r.ok||!j.success)throw new Error(j.message||'Send failed');
       inquiryForm.reset();document.getElementById('quizBanner').hidden=true;document.getElementById('quizField').value='';
-      setStatus('✓ Message sent! We\'ll email you back soon, usually within a day.','ok');
+      setStatus('✓ Message sent! We\'ll email you back soon, usually within a day.','ok');window.apexTrack&&apexTrack('messages');
     }catch(err){setStatus('Sorry, that didn\'t send. Please email team.apextutoring@gmail.com directly.','err')}
     finally{sendBtn.disabled=false}
   });
@@ -280,8 +282,11 @@
     }
     requestAnimationFrame(frame);
   })();
+  // Count booked intro calls (Calendly tells the page when someone schedules)
+  window.addEventListener('message',e=>{if(e.origin==='https://calendly.com'&&e.data&&e.data.event==='calendly.event_scheduled'&&window.apexTrack)apexTrack('bookings');});
   document.getElementById('year').textContent=new Date().getFullYear();
 </script>
 <script src="https://assets.calendly.com/assets/external/widget.js" async></script>
+<script src="stats.js"></script>
 </body>
 </html>

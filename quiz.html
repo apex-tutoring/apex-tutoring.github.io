@@ -14,6 +14,7 @@
   <meta property="og:title" content="Apex Tutoring – Free math placement quiz" />
   <meta property="og:description" content="A quick 5–10 minute quiz to find the right math level, from Grade 1 through Pre-Algebra." />
   <meta property="og:url" content="https://apex-tutoring.github.io/quiz.html" />
+  <link rel="canonical" href="https://apex-tutoring.github.io/quiz.html" />
   <meta property="og:image" content="https://apex-tutoring.github.io/og-image.png" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
@@ -153,7 +154,7 @@
   function shuffle(arr) { const a = [...arr]; for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
   function show(id) { ["startView", "quizView", "resultView"].forEach((v) => ($(v).hidden = v !== id)); window.scrollTo(0, 0); }
 
-  function start() { band = 0; qi = 0; asked = 0; results = BANDS.map(() => null); results[0] = 0; show("quizView"); render(); }
+  function start() { window.apexTrack && apexTrack("quiz_started"); band = 0; qi = 0; asked = 0; results = BANDS.map(() => null); results[0] = 0; show("quizView"); render(); }
 
   function render() {
     const b = BANDS[band], item = (current = b.skills[qi]());
@@ -205,6 +206,7 @@
     $("sendBtn").href = "./?" + params.toString() + "#contact";
     $("qBar").style.width = "100%";
     show("resultView");
+    window.apexTrack && apexTrack("quiz_finished");
   }
 
   $("startBtn").addEventListener("click", start);
@@ -212,5 +214,6 @@
   $("nextBtn").addEventListener("click", () => answer(picked === current.a[0]));
   $("skipBtn").addEventListener("click", () => answer(false));
 </script>
+<script src="stats.js"></script>
 </body>
 </html>
