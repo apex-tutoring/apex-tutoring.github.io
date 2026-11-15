@@ -23,10 +23,7 @@
     .shop-grid{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:18px;align-items:stretch}.product{overflow:hidden;padding:0;display:grid;grid-template-columns:1fr 1fr}.product-art{min-height:240px;display:grid;place-items:center;background:linear-gradient(135deg,#edf3fa,#e0eee9);position:relative}.product-art svg{width:62%;max-width:170px;height:auto}.stock{position:absolute;top:14px;left:14px;background:#c2410c;color:white;font-size:.75rem;font-weight:850;letter-spacing:.04em;padding:5px 10px;border-radius:999px}.product-body{padding:24px;display:flex;flex-direction:column}.product-body h3{margin:0 0 4px;font-size:1.3rem}.product-body .kind{font-size:.75rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--blue)}.product-body p{font-size:.92rem;color:var(--muted);flex:1}.product-foot{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:15px;flex-wrap:wrap}.product-foot strong{color:var(--navy)}.coming-card{display:flex;flex-direction:column;justify-content:center;background:#f8fafc;border-style:dashed}.coming-card ul{color:var(--muted);font-size:.92rem;padding-left:18px;margin:10px 0 0}
     .contact{background:var(--navy);color:white}.contact .section-head h2{color:white}.contact .section-head p{color:#c1ccda}.contact-grid{display:grid;grid-template-columns:.85fr 1.15fr;gap:22px;align-items:start}.contact-box{background:#203651;padding:26px;border:1px solid #3a506a;border-radius:20px}.contact-box p{color:#c1ccda;margin:6px 0 0;font-size:.93rem}.contact-box h3{margin:0;color:white}.email-link{display:inline-block;margin-top:14px;font-weight:800;color:#ffe29a;font-size:1.05rem;word-break:break-all}.contact-steps{list-style:none;padding:0;margin:20px 0 0;display:grid;gap:12px}.contact-steps li{display:flex;gap:12px;color:#dbe4ee;font-size:.92rem}.contact-steps b{flex:none;width:26px;height:26px;border-radius:50%;background:#f3c969;color:var(--navy);display:grid;place-items:center;font-size:.8rem}.inquiry{display:grid;grid-template-columns:1fr 1fr;gap:12px}.inquiry label{font-size:.83rem;font-weight:700;color:#dbe4ee}.inquiry input,.inquiry select,.inquiry textarea{width:100%;margin-top:5px;border:1px solid #3a506a;border-radius:10px;padding:11px;font:inherit;color:var(--ink);background:white}.inquiry textarea{min-height:100px;resize:vertical}.inquiry .full{grid-column:1/-1}.contact .btn{background:#f3c969;color:var(--navy)}.contact .btn:hover{background:#ffe29a}.form-note{font-size:.84rem;color:#9fb0c4;margin:0}.form-note.ok{color:#9be3c7;font-weight:700}.form-note.err{color:#ffb4a8;font-weight:700}.hp{position:absolute;left:-9999px;width:1px;height:1px;opacity:0}.inquiry{position:relative}
     .quiz-cta{margin-top:22px;display:flex;justify-content:space-between;align-items:center;gap:18px;flex-wrap:wrap;background:linear-gradient(135deg,#eaf2fa,#e3f1ec);border:1px solid var(--line);border-radius:20px;padding:20px 22px}.quiz-cta strong{display:block;color:var(--navy);font-size:1.05rem}.quiz-cta span{color:var(--muted);font-size:.92rem}.quiz-banner{grid-column:1/-1;background:#fff6dd;color:#6b5418;border-radius:10px;padding:10px 12px;font-size:.88rem;font-weight:700}.quiz-banner[hidden]{display:none}.footer-links{display:flex;gap:16px;flex-wrap:wrap}.footer-links a:hover{color:var(--blue)}
-    .icube-stage{--s:44px;width:220px;height:220px;margin-bottom:22px;perspective:700px;display:grid;place-items:center}.icube{position:relative;width:0;height:0;transform-style:preserve-3d;animation:icube-spin 14s linear infinite}.half{position:absolute;transform-style:preserve-3d}.hinge{transform-origin:0 0 calc(var(--s) * -1);animation:icube-fold 4.2s cubic-bezier(.65,0,.35,1) infinite}.c{position:absolute;width:var(--s);height:var(--s);margin:calc(var(--s)/-2);transform-style:preserve-3d;transform:translate3d(calc(var(--x)*var(--s)/2),calc(var(--y)*var(--s)/2),calc(var(--z)*var(--s)/2))}.c .f{position:absolute;inset:0;background:linear-gradient(135deg,#3d6fa3,#14243a);border:2px solid rgba(255,255,255,.85);border-radius:7px;backface-visibility:hidden}.c.alt .f{background:linear-gradient(135deg,#ffe29a,#e9b949)}.f.fr{transform:translateZ(calc(var(--s)/2))}.f.bk{transform:rotateY(180deg) translateZ(calc(var(--s)/2))}.f.rt{transform:rotateY(90deg) translateZ(calc(var(--s)/2))}.f.lf{transform:rotateY(-90deg) translateZ(calc(var(--s)/2))}.f.tp{transform:rotateX(90deg) translateZ(calc(var(--s)/2))}.f.bt{transform:rotateX(-90deg) translateZ(calc(var(--s)/2))}
-    @keyframes icube-spin{from{transform:rotateX(-24deg) rotateY(0deg)}to{transform:rotateX(-24deg) rotateY(360deg)}}
-    @keyframes icube-fold{0%,12%{transform:rotateY(0deg)}42%,58%{transform:rotateY(-180deg)}88%,100%{transform:rotateY(0deg)}}
-    @media(prefers-reduced-motion:reduce){.icube,.hinge{animation:none}.icube{transform:rotateX(-24deg) rotateY(35deg)}}
+    .icube-stage{--s:40px;width:220px;height:230px;margin-bottom:22px;perspective:800px;display:grid;place-items:center}.icube{position:relative;width:0;height:0;transform-style:preserve-3d;transform:rotateX(-28deg) rotateY(38deg)}.c{position:absolute;left:0;top:0;width:var(--s);height:var(--s);margin:calc(var(--s)/-2);transform-style:preserve-3d}.c .f{position:absolute;inset:0;background:linear-gradient(135deg,#4f86c0,#1d3557);border:2px solid #f3c969;border-radius:6px;backface-visibility:hidden}.c .f.tp{background:linear-gradient(135deg,#6f9fd2,#2c4f7c)}.c .f.bt{background:#14243a}.f.fr{transform:translateZ(calc(var(--s)/2))}.f.bk{transform:rotateY(180deg) translateZ(calc(var(--s)/2))}.f.rt{transform:rotateY(90deg) translateZ(calc(var(--s)/2))}.f.lf{transform:rotateY(-90deg) translateZ(calc(var(--s)/2))}.f.tp{transform:rotateX(90deg) translateZ(calc(var(--s)/2))}.f.bt{transform:rotateX(-90deg) translateZ(calc(var(--s)/2))}
     .product-art .cube-caption{position:absolute;bottom:12px;left:0;right:0;text-align:center;font-size:.75rem;font-weight:700;color:var(--muted)}
     .booking{scroll-margin-top:80px;background:white;border-radius:22px;padding:22px 22px 6px;margin-bottom:20px;color:var(--ink)}.booking-head{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:8px}.booking-head h3{margin:0;color:var(--navy);font-size:1.25rem}.booking-head p{margin:4px 0 0;color:var(--muted);font-size:.93rem}.contact .booking .btn{background:var(--navy);color:white}.calendly-inline-widget{min-width:280px;height:680px;overflow:hidden}.or-line{color:#c1ccda;font-weight:700;margin:6px 0 14px}
     footer{padding:28px 0;color:var(--muted);font-size:.85rem}.footer-inner{display:flex;justify-content:space-between;align-items:center;gap:15px;flex-wrap:wrap}.footer-brand{display:flex;align-items:center;gap:10px;font-weight:800;color:var(--navy)}.footer-brand img{width:28px;height:28px}
@@ -143,7 +140,7 @@
     <div class="shop-grid">
       <article class="card product">
         <div class="product-art"><span class="stock">Only 2 left</span>
-          <div class="icube-stage" role="img" aria-label="Animated infinity cube folding open and closed"><div class="icube"><div class="half"><div class="c" style="--x:-1;--y:-1;--z:-1"><i class="f fr"></i><i class="f bk"></i><i class="f rt"></i><i class="f lf"></i><i class="f tp"></i><i class="f bt"></i></div><div class="c alt" style="--x:-1;--y:-1;--z:1"><i class="f fr"></i><i class="f bk"></i><i class="f rt"></i><i class="f lf"></i><i class="f tp"></i><i class="f bt"></i></div><div class="c alt" style="--x:-1;--y:1;--z:-1"><i class="f fr"></i><i class="f bk"></i><i class="f rt"></i><i class="f lf"></i><i class="f tp"></i><i class="f bt"></i></div><div class="c" style="--x:-1;--y:1;--z:1"><i class="f fr"></i><i class="f bk"></i><i class="f rt"></i><i class="f lf"></i><i class="f tp"></i><i class="f bt"></i></div></div><div class="half hinge"><div class="c alt" style="--x:1;--y:-1;--z:-1"><i class="f fr"></i><i class="f bk"></i><i class="f rt"></i><i class="f lf"></i><i class="f tp"></i><i class="f bt"></i></div><div class="c" style="--x:1;--y:-1;--z:1"><i class="f fr"></i><i class="f bk"></i><i class="f rt"></i><i class="f lf"></i><i class="f tp"></i><i class="f bt"></i></div><div class="c" style="--x:1;--y:1;--z:-1"><i class="f fr"></i><i class="f bk"></i><i class="f rt"></i><i class="f lf"></i><i class="f tp"></i><i class="f bt"></i></div><div class="c alt" style="--x:1;--y:1;--z:1"><i class="f fr"></i><i class="f bk"></i><i class="f rt"></i><i class="f lf"></i><i class="f tp"></i><i class="f bt"></i></div></div></div></div><span class="cube-caption">Folds open… and closes… forever ∞</span>
+          <div class="icube-stage" role="img" aria-label="Animated infinity cube: it opens down the middle, rolls over, and closes into a cube again, forever"><div class="icube" id="icube"><div class="c"><i class="f fr"></i><i class="f bk"></i><i class="f rt"></i><i class="f lf"></i><i class="f tp"></i><i class="f bt"></i></div><div class="c"><i class="f fr"></i><i class="f bk"></i><i class="f rt"></i><i class="f lf"></i><i class="f tp"></i><i class="f bt"></i></div><div class="c"><i class="f fr"></i><i class="f bk"></i><i class="f rt"></i><i class="f lf"></i><i class="f tp"></i><i class="f bt"></i></div><div class="c"><i class="f fr"></i><i class="f bk"></i><i class="f rt"></i><i class="f lf"></i><i class="f tp"></i><i class="f bt"></i></div><div class="c"><i class="f fr"></i><i class="f bk"></i><i class="f rt"></i><i class="f lf"></i><i class="f tp"></i><i class="f bt"></i></div><div class="c"><i class="f fr"></i><i class="f bk"></i><i class="f rt"></i><i class="f lf"></i><i class="f tp"></i><i class="f bt"></i></div><div class="c"><i class="f fr"></i><i class="f bk"></i><i class="f rt"></i><i class="f lf"></i><i class="f tp"></i><i class="f bt"></i></div><div class="c"><i class="f fr"></i><i class="f bk"></i><i class="f rt"></i><i class="f lf"></i><i class="f tp"></i><i class="f bt"></i></div></div></div><span class="cube-caption">Opens, rolls over, closes… forever ∞</span>
         </div>
         <div class="product-body"><span class="kind">3D-printed fidget</span><h3>Infinity Cube</h3><p>A foldable cube that flips and turns endlessly. A quiet, satisfying fidget for focus during homework and study breaks.</p><div class="product-foot"><strong>Price coming soon</strong><a class="btn" href="#contact" data-interest="Shop: Infinity Cube">Request one</a></div></div>
       </article>
@@ -228,6 +225,47 @@
   // Placement quiz result passed in the URL (?quiz=...)
   const qp=new URLSearchParams(location.search);
   if(qp.get('quiz')){const r=qp.get('quiz').slice(0,120);document.getElementById('quizField').value=r;const b=document.getElementById('quizBanner');b.textContent='🎯 Placement quiz result: '+r+' (included in your message)';b.hidden=false;interestSelect.value='Free intro call';}
+
+  // Infinity cube: 8 cubes in a 2x2x2. Each cycle it splits down the middle, the two halves
+  // open like a book into a flat 4x2 slab, keep rolling over the top and close into a cube again
+  // (inside faces now outside). The next split is in the perpendicular direction, so it never ends.
+  (function(){
+    const root=document.getElementById('icube'); if(!root)return;
+    const cubes=[...root.querySelectorAll('.c')], E=40; // E = small cube edge (px), matches --s
+    let base=[]; for(const x of[-1,1])for(const y of[-1,1])for(const z of[-1,1])base.push(new DOMMatrix().translate(x*E/2,y*E/2,z*E/2));
+    const pos=(m)=>({x:m.m41,y:m.m42,z:m.m43});
+    const rotAbout=(m,P,axis,deg)=>new DOMMatrix().translate(P.x,P.y,P.z).rotateAxisAngle(axis.x,axis.y,axis.z,deg).translate(-P.x,-P.y,-P.z).multiply(m);
+    const ease=(t)=>t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;
+    function centre(ms){const p=ms.map(pos);const f=(k)=>(Math.min(...p.map(q=>q[k]))+Math.max(...p.map(q=>q[k])))/2;return{x:f('x'),y:f('y'),z:f('z')};}
+    function draw(ms,spin){const c=centre(ms);ms.forEach((m,i)=>{cubes[i].style.transform=new DOMMatrix().translate(-c.x,-c.y,-c.z).multiply(m).toString();});root.style.transform=`rotateX(-28deg) rotateY(${spin}deg)`;}
+    if(matchMedia('(prefers-reduced-motion: reduce)').matches){draw(base,38);return;}
+    let splitX=true, phase=0, t0=performance.now(), plan=null;
+    const DUR=[1100,1100,700]; // open, close, rest (ms)
+    function makePlan(){
+      const c=centre(base), A=splitX?'x':'z', axis=splitX?{x:0,y:0,z:1}:{x:1,y:0,z:0};
+      const top=Math.min(...base.map(m=>pos(m).y))-E/2;          // CSS y points down: smaller = higher
+      const hinge=phase===0?{x:c.x,y:top,z:c.z}:{x:c.x,y:top,z:c.z};
+      const sides=base.map(m=>pos(m)[A]<c[A]?-1:1);
+      // pick each half's rotation direction: the one that lifts it up (out, then over the top)
+      const dir={};
+      for(const sd of[-1,1]){const ms=base.filter((_,i)=>sides[i]===sd);const yAfter=(d)=>ms.map(m=>pos(rotAbout(m,hinge,axis,d)).y).reduce((a,b)=>a+b,0);dir[sd]=yAfter(90)<yAfter(-90)?90:-90;}
+      return{axis,hinge,sides,dir};
+    }
+    plan=makePlan();
+    function frame(now){
+      const spin=38+now/120;
+      let t=(now-t0)/DUR[phase];
+      if(t>=1){
+        if(phase<2){base=base.map((m,i)=>rotAbout(m,plan.hinge,plan.axis,plan.dir[plan.sides[i]]));}
+        phase=(phase+1)%3; if(phase===0)splitX=!splitX;
+        t0=now; t=0; if(phase<2)plan=makePlan();
+      }
+      if(phase===2){draw(base,spin);}
+      else{const k=ease(t);draw(base.map((m,i)=>rotAbout(m,plan.hinge,plan.axis,plan.dir[plan.sides[i]]*k)),spin);}
+      requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+  })();
   document.getElementById('year').textContent=new Date().getFullYear();
 </script>
 <script src="https://assets.calendly.com/assets/external/widget.js" async></script>
