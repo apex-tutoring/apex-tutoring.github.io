@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex" />
+  <title>You're booked! | Apex Tutoring</title>
+  <link rel="icon" type="image/svg+xml" href="logo.svg" />
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png" />
+  <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+  <style>
+    :root{--navy:#14243a;--blue:#315f91;--sky:#eaf2fa;--ink:#243247;--muted:#56657a;--line:#e3eaf1;--gold:#f3c969;--green:#2f7d66;--shadow:0 18px 50px rgba(20,36,58,.09)}
+    *{box-sizing:border-box}body{margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--ink);background:linear-gradient(135deg,#f8fbff,#eef3f8);line-height:1.6;min-height:100vh;overflow-x:hidden}
+    a{color:var(--blue)}.wrap{width:min(760px,calc(100% - 32px));margin:auto}
+    header{background:white;border-bottom:1px solid var(--line)}.nav{height:70px;display:flex;align-items:center;justify-content:space-between;width:min(1080px,calc(100% - 32px));margin:auto}.brand{display:flex;align-items:center;gap:10px;font-weight:850;color:var(--navy);text-decoration:none;letter-spacing:.02em}.brand img{width:38px;height:38px}.back{font-size:.9rem;font-weight:700;text-decoration:none}
+    main{padding:40px 0 70px}.card{background:white;border:1px solid var(--line);border-radius:22px;padding:32px;box-shadow:var(--shadow)}
+    .burst{font-size:3rem;line-height:1}.eyebrow{font-size:.74rem;text-transform:uppercase;letter-spacing:.16em;color:var(--blue);font-weight:800;margin-top:14px}
+    h1{color:var(--navy);letter-spacing:-.03em;margin:6px 0 10px;font-size:clamp(2rem,6vw,2.8rem);line-height:1.1}.lead{font-size:1.08rem;color:var(--muted);margin:0}
+    .mail{display:flex;gap:12px;align-items:flex-start;background:var(--sky);border-radius:16px;padding:16px 18px;margin:22px 0 6px;color:var(--navy)}.mail span{font-size:1.4rem}.mail p{margin:2px 0 0;color:var(--ink)}
+    h2{color:var(--navy);font-size:1.15rem;margin:26px 0 10px}
+    .steps{list-style:none;padding:0;margin:0;display:grid;gap:10px;counter-reset:s}.steps li{display:flex;gap:14px;align-items:flex-start;background:#f6f9fc;border:1px solid var(--line);border-radius:14px;padding:14px 16px;counter-increment:s}
+    .steps li:before{content:counter(s);flex:none;width:28px;height:28px;border-radius:50%;background:var(--gold);color:#14243a;display:grid;place-items:center;font-weight:800;font-size:.85rem}
+    .steps b{color:var(--navy)}.steps p{margin:2px 0 0;color:var(--muted);font-size:.93rem}
+    .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:26px}
+    .btn{display:inline-flex;align-items:center;justify-content:center;border:0;border-radius:999px;background:var(--navy);color:white;padding:12px 20px;font-weight:700;text-decoration:none}.btn:hover{background:var(--blue)}.btn.light{background:white;color:var(--navy);border:1px solid var(--line)}
+    .small{font-size:.86rem;color:var(--muted);margin-top:22px}
+    @media(max-width:560px){.card{padding:22px}.btn{width:100%}}
+  </style>
+  <script>(function(){var t=null;try{t=localStorage.getItem('apexTheme')}catch(e){}document.documentElement.dataset.theme=t||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light')})()</script>
+  <link rel="stylesheet" href="theme.css" />
+</head>
+<body>
+<header><div class="nav"><a class="brand" href="./"><img src="logo.svg" alt="" />APEX TUTORING</a><span style="display:flex;align-items:center;gap:12px"><button class="theme-toggle" type="button" aria-label="Switch to dark mode">🌙</button><a class="back" href="./">← Back to home</a></span></div></header>
+<main class="wrap" id="main">
+  <article class="card">
+    <div class="burst" aria-hidden="true">🎉</div>
+    <div class="eyebrow">Intro call booked</div>
+    <h1>You're booked!</h1>
+    <p class="lead">Thanks for booking a free intro call with Apex Tutoring. Veer is looking forward to meeting you.</p>
+    <div class="mail"><span aria-hidden="true">📧</span><div><strong>Check your email</strong><p>Calendly just sent your confirmation with the date, time, and Google Meet link. It's also where you can reschedule or cancel. Don't see it? Check spam.</p></div></div>
+
+    <h2>Before the call (all optional)</h2>
+    <ol class="steps">
+      <li><div><b>Take the free placement quiz.</b><p>5–10 minutes. It helps Veer know where to start. <a href="quiz.html">Start the quiz →</a></p></div></li>
+      <li><div><b>Jot down what feels tricky.</b><p>A topic from class, a recent test, or homework that was hard. Bring it to the call.</p></div></li>
+      <li><div><b>Try a free worksheet.</b><p>A quick way to warm up. <a href="./#worksheets">Browse worksheet packs →</a></p></div></li>
+      <li><div><b>Get set up.</b><p>A computer or tablet with a camera, plus paper and a pencil. Join the Google Meet a minute early.</p></div></li>
+    </ol>
+
+    <div class="actions">
+      <a class="btn" href="quiz.html">Take the placement quiz</a>
+      <a class="btn light" href="./#faq">Read the FAQ</a>
+      <a class="btn light" href="./">Back to home</a>
+    </div>
+    <p class="small">Questions before the call? Email <a href="mailto:team.apextutoring@gmail.com">team.apextutoring@gmail.com</a> or <a href="./#contact">send a message</a>.</p>
+  </article>
+</main>
+<script src="stats.js"></script>
+<script src="theme.js"></script>
+</body>
+</html>

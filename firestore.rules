@@ -83,7 +83,7 @@ service cloud.firestore {
     // (To add a new counter in stats.js / the site, add its name to this list too.)
     function counters() {
       return ['visitors', 'views_index', 'views_quiz', 'views_privacy', 'views_portal',
-              'quiz_started', 'quiz_finished', 'bookings', 'messages', 'portal_logins', 'worksheet_downloads'];
+              'quiz_started', 'quiz_finished', 'bookings', 'messages', 'portal_logins', 'worksheet_downloads', 'views_booked'];
     }
     // A counter either stays the same or goes up by exactly 1.
     function sameOrPlusOne(k) {
@@ -101,7 +101,7 @@ service cloud.firestore {
         && sameOrPlusOne('visitors') && sameOrPlusOne('views_index') && sameOrPlusOne('views_quiz')
         && sameOrPlusOne('views_privacy') && sameOrPlusOne('views_portal') && sameOrPlusOne('quiz_started')
         && sameOrPlusOne('quiz_finished') && sameOrPlusOne('bookings') && sameOrPlusOne('messages')
-        && sameOrPlusOne('portal_logins') && sameOrPlusOne('worksheet_downloads');
+        && sameOrPlusOne('portal_logins') && sameOrPlusOne('worksheet_downloads') && sameOrPlusOne('views_booked');
     }
   }
 }

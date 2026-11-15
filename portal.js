@@ -12,6 +12,7 @@ const SDK = "https://www.gstatic.com/firebasejs/10.12.2/";
 const EMAILJS = { service: "apex_gmail", template: "family_update", publicKey: "EiIbnInZ3MH-0EpaB" };
 const PORTAL_URL = "https://apex-tutoring.github.io/portal.html";
 const SITE = "https://apex-tutoring.github.io/";
+const RETURN = { url: "https://apex-tutoring.github.io/portal.html?welcome=1" }; // where "Continue" goes after setting a password
 // Free worksheet packs that can be assigned as homework (files live in /worksheets)
 const PACKS = { "grades-1-2": "Grades 1–2 pack", "grade-3": "Grade 3 pack", "grades-4-5": "Grades 4–5 pack",
   "grades-6-7": "Grades 6–7 pack", "pre-algebra": "Pre-Algebra pack", "competition": "Competition Math pack" };
@@ -76,6 +77,11 @@ async function start() {
   }[e?.code] || "Something went wrong. Please try again.");
 
   // ---------- Login ----------
+  const params = new URLSearchParams(location.search);
+  if (params.has("welcome")) {
+    setMsg($("loginMsg"), "🎉 Your password is set! Log in below with your email and new password.", "ok");
+    history.replaceState(null, "", location.pathname);
+  }
   $("loginForm").addEventListener("submit", async (e) => {
     e.preventDefault();
     $("loginBtn").disabled = true;
@@ -87,7 +93,7 @@ async function start() {
   $("forgotBtn").addEventListener("click", async () => {
     const email = $("loginEmail").value.trim();
     if (!email) return setMsg($("loginMsg"), "Enter your email above first, then click this again.", "info");
-    try { await A.sendPasswordResetEmail(auth, email); } catch (_) { /* don't reveal whether the account exists */ }
+    try { await A.sendPasswordResetEmail(auth, email, RETURN); } catch (_) { /* don't reveal whether the account exists */ }
     setMsg($("loginMsg"), "If that email has an Apex account, a link to set your password is on its way.", "ok");
   });
   $("signOutBtn").addEventListener("click", () => A.signOut(auth));
@@ -139,6 +145,7 @@ async function start() {
           try {
             await F.updateDoc(F.doc(db, "students", opts.studentId, "updates", u.id), { homeworkDone: box.checked, homeworkDoneAt: F.serverTimestamp() });
             u.homeworkDone = box.checked; lbl.lastChild.textContent = box.checked ? "Done ✓" : "Mark as done"; hw.classList.toggle("done", box.checked);
+            if (box.checked) toast("🎉 Nice work! Veer will see your homework is done.");
           } catch (e) { box.checked = !box.checked; lbl.lastChild.textContent = friendly(e); }
           finally { box.disabled = false; }
         });
@@ -467,12 +474,29 @@ async function start() {
     box.replaceChildren(form, list); render(true);
   }
 
+  function toast(msg) { const t = $("toast"); t.textContent = msg; t.hidden = false; clearTimeout(t._h); t._h = setTimeout(() => (t.hidden = true), 5000); }
+  function welcomeCard(user) {
+    const key = "apexWelcomed_" + user.uid;
+    try { if (localStorage.getItem(key)) return null; } catch { return null; }
+    const card = el("article", { class: "card welcome-card", role: "status" },
+      el("h2", { text: "👋 Welcome to the Apex Student Portal!" }),
+      el("p", { class: "muted", text: "Here's what you can do here:" }),
+      el("ul", { class: "welcome-list" },
+        el("li", { text: "📈 See progress, topics mastered, and your session calendar" }),
+        el("li", { text: "📝 Find homework and tick it off when it's done" }),
+        el("li", { text: "💬 Message Veer anytime, and he gets an email" }),
+        el("li", { text: "📄 Print a monthly progress report" })),
+      el("button", { type: "button", class: "btn small", text: "Got it", onclick: () => { try { localStorage.setItem(key, "1"); } catch {} card.remove(); } }));
+    return card;
+  }
+
   // ---------- Family view ----------
   async function loadFamily(user) {
     const box = $("familyStudents");
     stopLive(); box.replaceChildren();
     const snap = await F.getDocs(F.query(F.collection(db, "students"), F.where("familyUid", "==", user.uid)));
     if (snap.empty) { box.append(el("div", { class: "card" }, el("p", { class: "empty", text: "Your tutor hasn't added your student profile yet. Check back after your first session." }))); return; }
+    const hello = welcomeCard(user); if (hello) box.append(hello);
     for (const d of snap.docs) {
       const s = d.data();
       const updates = await getUpdates(d.id);
@@ -505,7 +529,7 @@ async function start() {
       e.preventDefault(); const f = new FormData(form);
       try {
         await F.setDoc(ref, { name: f.get("name").trim(), rating: Number(f.get("rating")), text: f.get("text").trim(), approved: false, createdAt: F.serverTimestamp() });
-        setMsg(status, "Thanks! Your review is waiting for Veer's approval.", "ok");
+        setMsg(status, "💛 Thank you! Your review means a lot. It'll appear on the homepage once Veer approves it.", "ok");
         emailFamily({ name: firstStudent.name }, "New review waiting for approval", `${f.get("name").trim()} left a ${f.get("rating")}-star review:\n\n${f.get("text").trim()}\n\nApprove it in the teacher dashboard.`, TUTOR_EMAIL).catch(() => {});
       } catch (err) { setMsg(status, friendly(err), "err"); }
     });
@@ -576,7 +600,7 @@ async function start() {
       try { await F.updateDoc(F.doc(db, "students", id), { progress: Math.max(0, Math.min(100, Number(progressInput.value) || 0)) }); setMsg(msg, "Progress saved.", "ok"); await loadTeacher(); }
       catch (e) { setMsg(msg, friendly(e), "err"); } } });
     const resend = el("button", { class: "linkbtn", type: "button", text: "Resend password email", onclick: async () => {
-      try { await A.sendPasswordResetEmail(auth, s.familyEmail); setMsg(msg, `Password email sent to ${s.familyEmail}.`, "ok"); }
+      try { await A.sendPasswordResetEmail(auth, s.familyEmail, RETURN); setMsg(msg, `Password email sent to ${s.familyEmail}.`, "ok"); }
       catch (e) { setMsg(msg, friendly(e), "err"); } } });
 
     msg.id = "logMsg";
@@ -754,7 +778,7 @@ async function start() {
         name: f.get("name").trim(), grade: f.get("grade"), course: f.get("course"),
         familyUid: uid, familyEmail: email, sessions: 0, progress: 0, nextGoal: "", createdAt: F.serverTimestamp(),
       });
-      if (created) await A.sendPasswordResetEmail(auth, email);
+      if (created) await A.sendPasswordResetEmail(auth, email, RETURN);
       form.reset(); selectedId = ref.id; await loadTeacher();
       setMsg(msg, created ? `Added! ${email} was emailed a link to set their password.` : `Added to the existing family account for ${email}.`, "ok");
     } catch (err) {

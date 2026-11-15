@@ -49,6 +49,9 @@
     .review-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}.review-card{background:white;border:1px solid var(--line);border-radius:20px;padding:22px;margin:0}.review-card .stars{color:#c98a0b;letter-spacing:2px;font-size:1.05rem}.review-card blockquote{margin:10px 0 12px;color:var(--ink)}.review-card figcaption{color:var(--muted);font-weight:700;font-size:.9rem}
     @media(max-width:850px){.review-grid{grid-template-columns:1fr 1fr}}@media(max-width:560px){.review-grid{grid-template-columns:1fr}}
     .skip{position:absolute;left:-999px;top:8px;z-index:50;background:var(--navy);color:white;padding:10px 14px;border-radius:10px;font-weight:700}.skip:focus{left:12px}main:focus{outline:none}
+    .contact-box[hidden],.toast[hidden],.booked-note[hidden]{display:none!important}.thanks-card{text-align:left}.thanks-card h3{margin:6px 0 8px;color:white;font-size:1.3rem}.thanks-card p{color:#dbe4ee}.thanks-burst{font-size:2rem}.thanks-small{font-size:.86rem}.thanks-small strong{color:#ffe29a;word-break:break-all}.thanks-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}.contact .btn.ghost{background:transparent;color:white;border:1px solid #4a6280}.contact .btn.ghost:hover{background:#2a4262}.thanks-card:focus{outline:none}
+    .booked-note{margin:14px 0 0;background:#dff2ec;color:#1f5f4c;border-radius:12px;padding:10px 14px;font-weight:700}
+    .toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);z-index:60;background:var(--navy);color:white;padding:12px 18px;border-radius:14px;box-shadow:var(--shadow);font-weight:600;max-width:min(520px,calc(100% - 32px));text-align:center}
     footer{padding:28px 0;color:var(--muted);font-size:.85rem}.footer-inner{display:flex;justify-content:space-between;align-items:center;gap:15px;flex-wrap:wrap}.footer-brand{display:flex;align-items:center;gap:10px;font-weight:800;color:var(--navy)}.footer-brand img{width:28px;height:28px}
     @media(max-width:1180px){.links{gap:16px;font-size:.88rem}}
     @media(max-width:980px){.price-grid{grid-template-columns:1fr 1fr}}
@@ -207,6 +210,7 @@
       <div class="booking-head"><div><h3>📅 Choose a time</h3><p>Weekdays after school. You'll get a confirmation email with the Google Meet link.</p></div><a class="btn" href="https://calendly.com/team-apextutoring/intro-call" target="_blank" rel="noopener">Open in a new tab ↗</a></div>
       <div class="calendly-inline-widget" id="calendlyEmbed"><iframe src="https://calendly.com/team-apextutoring/intro-call?embed_domain=apex-tutoring.github.io&amp;embed_type=Inline&amp;hide_gdpr_banner=1&amp;hide_event_type_details=1&amp;primary_color=315f91" title="Book a free intro call with Apex Tutoring" loading="lazy" width="100%" height="100%" frameborder="0"></iframe></div>
     </div>
+    <p class="booked-note" id="bookedNote" role="status" hidden>🎉 You're booked! Taking you to your next steps…</p>
     <p class="cross-link">Have a question first? <a href="#contact">Send us a message →</a></p>
   </div></section>
 
@@ -215,6 +219,13 @@
     <div class="contact-grid">
       <div class="contact-box"><h3>Email us</h3><p>We usually reply within a day.</p><a class="email-link" href="mailto:team.apextutoring@gmail.com">team.apextutoring@gmail.com</a>
         <ol class="contact-steps"><li><b>1</b><span>Send a message with the student's grade and what they need help with.</span></li><li><b>2</b><span>We set up a free 20-minute intro call, or <a href="#book" style="color:#ffe29a;font-weight:700">book one yourself</a>.</span></li><li><b>3</b><span>We pick a level, schedule sessions, and you get your portal login.</span></li></ol>
+      </div>
+      <div class="contact-box thanks-card" id="thanksCard" tabindex="-1" role="status" hidden>
+        <div class="thanks-burst" aria-hidden="true">✉️</div>
+        <h3 data-t="title">Thanks! Your message is on its way.</h3>
+        <p data-t="next"></p>
+        <p class="thanks-small">We'll reply to <strong data-t="email"></strong>. Check your spam folder if you don't see it in a day.</p>
+        <div class="thanks-actions"><a class="btn" href="#book">Book a free intro call</a><a class="btn ghost" href="quiz.html">Take the placement quiz</a><button class="btn ghost" type="button" id="sendAnother">Send another message</button></div>
       </div>
       <form class="contact-box inquiry" id="inquiryForm">
         <p class="quiz-banner" id="quizBanner" hidden></p><input type="hidden" name="quiz" id="quizField">
@@ -230,6 +241,7 @@
     </div>
   </div></section>
 </main>
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 <footer><div class="wrap footer-inner"><span class="footer-brand"><img src="logo.svg" alt="" />Apex Tutoring</span><span class="footer-links"><a href="#faq">FAQ</a><a href="#book">Book a call</a><a href="#contact">Contact</a><a href="quiz.html">Placement quiz</a><a href="portal.html">Student portal</a><a href="privacy.html">Privacy policy</a></span><span>© <span id="year"></span> Apex Tutoring · <a href="mailto:team.apextutoring@gmail.com">team.apextutoring@gmail.com</a></span></div></footer>
 <script>
   const menuBtn=document.getElementById('menuBtn'),navLinks=document.getElementById('navLinks');
@@ -275,10 +287,24 @@
       const j=await r.json().catch(()=>({}));
       if(!r.ok||!j.success)throw new Error(j.message||'Send failed');
       inquiryForm.reset();document.getElementById('quizBanner').hidden=true;document.getElementById('quizField').value='';
-      setStatus('✓ Message sent! We\'ll email you back soon, usually within a day.','ok');window.apexTrack&&apexTrack('messages');
+      window.apexTrack&&apexTrack('messages');showThanks(f);
     }catch(err){setStatus('Sorry, that didn\'t send. Please email team.apextutoring@gmail.com directly.','err')}
     finally{sendBtn.disabled=false}
   });
+  // Thank-you card shown in place of the form after a message is sent
+  function showThanks(f){
+    const name=(f.get('parent')||'').trim().split(/\s+/)[0]||'there', interest=f.get('interest')||'', email=f.get('email')||'';
+    const shop=interest.startsWith('Shop'), prep=/test prep/i.test(interest);
+    const next=shop?'Veer will email you about price, availability, and pickup or delivery for your order.'
+      :prep?'Veer will email you about the test or competition and how many sessions would help.'
+      :'Veer will email you back, usually within a day, to answer questions and set up a free intro call.';
+    const card=document.getElementById('thanksCard');
+    card.querySelector('[data-t=title]').textContent=`Thanks, ${name}! Your message is on its way.`;
+    card.querySelector('[data-t=next]').textContent=next;
+    card.querySelector('[data-t=email]').textContent=email;
+    inquiryForm.hidden=true; card.hidden=false; card.focus();
+  }
+  document.getElementById('sendAnother').addEventListener('click',()=>{document.getElementById('thanksCard').hidden=true;inquiryForm.hidden=false;setStatus('We\'ll reply to your email, usually within a day.');inquiryForm.querySelector('input').focus();});
   // Placement quiz result passed in the URL (?quiz=...)
   const qp=new URLSearchParams(location.search);
   if(qp.get('quiz')){const r=qp.get('quiz').slice(0,120);document.getElementById('quizField').value=r;const b=document.getElementById('quizBanner');b.textContent='🎯 Placement quiz result: '+r+' (included in your message)';b.hidden=false;interestSelect.value='Free intro call';}
@@ -323,9 +349,16 @@
     }
     requestAnimationFrame(frame);
   })();
-  document.querySelectorAll('[data-ws]').forEach(a=>a.addEventListener('click',()=>window.apexTrack&&apexTrack('worksheet_downloads')));
+  function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.hidden=false;clearTimeout(t._h);t._h=setTimeout(()=>{t.hidden=true},6000);}
+  document.querySelectorAll('[data-ws]').forEach(a=>a.addEventListener('click',()=>{window.apexTrack&&apexTrack('worksheet_downloads');toast('📄 Happy practicing! The answer key is on the last page, so cover it up first 😉');}));
+  document.querySelectorAll('.ws-actions a:not([data-ws])').forEach(a=>a.addEventListener('click',()=>toast('🖨 Tip: print just page 1 for the worksheet, and keep page 2 (the answer key) for checking.')));
   // Count booked intro calls (Calendly tells the page when someone schedules)
-  window.addEventListener('message',e=>{if(e.origin==='https://calendly.com'&&e.data&&e.data.event==='calendly.event_scheduled'&&window.apexTrack)apexTrack('bookings');});
+  window.addEventListener('message',e=>{
+    if(e.origin!=='https://calendly.com'||!e.data||e.data.event!=='calendly.event_scheduled')return;
+    window.apexTrack&&apexTrack('bookings');
+    const b=document.getElementById('bookedNote'); if(b){b.hidden=false;}
+    setTimeout(()=>{location.href='booked.html';},2500);
+  });
   // Booking calendar is a plain lazy-loaded iframe (loading="lazy"), so it only loads when the visitor scrolls near it.
   // Approved reviews from families (shown only when there's at least one)
   (async function(){
