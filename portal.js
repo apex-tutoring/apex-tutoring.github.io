@@ -5,6 +5,7 @@
 //   students/{id}                → { name, grade, course, familyUid, familyEmail, sessions, progress, nextGoal }
 //   students/{id}/updates/{id}   → { topic, status, note, goal, createdAt }
 import { firebaseConfig } from "./firebase-config.js";
+import { CURRICULUM, REVIEW_PACKS } from "./curriculum.js";
 
 const SDK = "https://www.gstatic.com/firebasejs/10.12.2/";
 // EmailJS (emailjs.com) sends "new update" emails to families from team.apextutoring@gmail.com.
@@ -13,9 +14,15 @@ const EMAILJS = { service: "apex_gmail", template: "family_update", publicKey: "
 const PORTAL_URL = "https://apex-tutoring.github.io/portal.html";
 const SITE = "https://apex-tutoring.github.io/";
 const RETURN = { url: "https://apex-tutoring.github.io/portal.html?welcome=1" }; // where "Continue" goes after setting a password
-// Free worksheet packs that can be assigned as homework (files live in /worksheets)
-const PACKS = { "grades-1-2": "Grades 1–2 pack", "grade-3": "Grade 3 pack", "grades-4-5": "Grades 4–5 pack",
-  "grades-6-7": "Grades 6–7 pack", "pre-algebra": "Pre-Algebra pack", "competition": "Competition Math pack" };
+// Worksheets that can be assigned as homework (files live in /worksheets; list comes from curriculum.js).
+// PACKS maps a worksheet id to its title, e.g. "g3-u05-a" → "Grade 3 · Unit 5: Understand fractions (Practice A)".
+const PACKS = { ...REVIEW_PACKS };
+CURRICULUM.forEach((c) => c.units.forEach((u) => u.sheets.forEach((sh) => { PACKS[sh.slug] = `${c.name} · Unit ${u.n}: ${u.title} (${sh.label})`; })));
+// Which course a student follows, from their grade / course
+function courseIdFor(s) {
+  if (s.course === "Test Prep") return "comp";
+  const m = /Grade (\d)$/.exec(s.grade || ""); return m ? "g" + m[1] : "pa";
+}
 const TUTOR_EMAIL = "team.apextutoring@gmail.com";
 async function emailFamily(student, subject, message, toEmail = student.familyEmail) {
   if (EMAILJS.service.startsWith("PASTE")) throw new Error("Email notifications aren't set up yet.");
@@ -161,9 +168,23 @@ async function start() {
       u.note ? el("p", { text: u.note }) : null, hw,
     ];
   }
-  function packSelect(name, current) {
-    return el("select", { name }, [["", "None"], ...Object.entries(PACKS)].map(([v, t]) => {
-      const o = el("option", { value: v, text: t }); if (v === (current || "")) o.selected = true; return o; }));
+  // Two linked dropdowns: pick a course, then one of its unit worksheets. The worksheet <select> carries `name`.
+  function worksheetPicker(name, current, defaultCourse) {
+    const courseOf = (slug) => (slug && CURRICULUM.find((c) => c.units.some((u) => u.sheets.some((sh) => sh.slug === slug)))) || null;
+    const start = courseOf(current) || CURRICULUM.find((c) => c.id === defaultCourse) || CURRICULUM[0];
+    const courseSel = el("select", { "aria-label": "Worksheet course" }, CURRICULUM.map((c) => { const o = el("option", { value: c.id, text: c.name }); if (c.id === start.id) o.selected = true; return o; }));
+    const sheetSel = el("select", { name, "aria-label": "Worksheet" });
+    function fill(cid, keep) {
+      const c = CURRICULUM.find((x) => x.id === cid);
+      sheetSel.replaceChildren(el("option", { value: "", text: "None" }),
+        ...c.units.map((u) => el("optgroup", { label: `Unit ${u.n}: ${u.title}` }, u.sheets.map((sh) => { const o = el("option", { value: sh.slug, text: `Unit ${u.n}: ${u.title} – ${sh.label}` }); if (sh.slug === keep) o.selected = true; return o; }))));
+      if (REVIEW_PACKS[current] && cid === start.id) { const o = el("option", { value: current, text: REVIEW_PACKS[current] }); o.selected = keep === current; sheetSel.append(o); }
+    }
+    fill(start.id, current);
+    courseSel.addEventListener("change", () => fill(courseSel.value, ""));
+    const wrap = el("div", { class: "ws-picker full" }, el("label", {}, "Worksheet course", courseSel), el("label", {}, "Assign a worksheet (optional)", sheetSel));
+    wrap.choose = (slug) => { const c = courseOf(slug); if (!c) return; courseSel.value = c.id; fill(c.id, slug); };
+    return wrap;
   }
   // opts: { studentId, role }. role "teacher" adds Edit / Delete; role "family" adds homework check-off.
   function updatesList(updates, opts = {}) {
@@ -188,7 +209,7 @@ async function start() {
           const opt = el("option", { text: o }); if (o === u.status) opt.selected = true; return opt; }))),
         el("label", { class: "full" }, "Session note", el("textarea", { name: "note", maxlength: "600" }, u.note || "")),
         el("label", { class: "full" }, "Practice / homework", el("input", { name: "homework", maxlength: "200", value: u.homework || "" })),
-        el("label", {}, "Worksheet pack", packSelect("worksheet", u.worksheet)),
+        worksheetPicker("worksheet", u.worksheet, courseIdFor(students.find((x) => x.id === studentId) || {})),
         el("label", {}, "Worksheet link", el("input", { name: "homeworkLink", type: "url", maxlength: "400", value: u.homeworkLink || "", placeholder: "https://…" })),
         el("div", { class: "row full" }, el("button", { class: "btn small", type: "submit", text: "Save changes" }),
           el("button", { class: "btn light small", type: "button", text: "Cancel", onclick: () => art.replaceChildren(...updateBody(u, { studentId, role: "teacher" }), noteActions(studentId, u, art)) })));
@@ -418,7 +439,6 @@ async function start() {
 
   // ---------- Resource library: the tutor adds links by level; families see the ones for their level ----------
   const LEVELS = ["All levels", "Grades 1–2", "Grade 3", "Grades 4–5", "Grades 6–7", "Pre-Algebra", "Test Prep"];
-  const LEVEL_PACK = { "Grades 1–2": "grades-1-2", "Grade 3": "grade-3", "Grades 4–5": "grades-4-5", "Grades 6–7": "grades-6-7", "Pre-Algebra": "pre-algebra", "Test Prep": "competition" };
   function levelFor(s) {
     const g = s.grade || "";
     if (/Grade [12]$/.test(g)) return "Grades 1–2";
@@ -442,9 +462,12 @@ async function start() {
     const levels = new Set(["All levels", levelFor(s)]); if (s.course === "Test Prep") levels.add("Test Prep");
     let items = [];
     try { items = (await getResources()).filter((r) => levels.has(r.level)); } catch {}
-    const pack = LEVEL_PACK[levelFor(s)];
-    const built = [{ title: `${PACKS[pack]} (free Apex worksheet)`, url: `${SITE}worksheets/${pack}.html`, level: levelFor(s), note: "Printable practice with an answer key." }];
-    return el("ul", { class: "res-list" }, [...items, ...built].map((r) => resourceItem(r)));
+    const c = CURRICULUM.find((x) => x.id === courseIdFor(s));
+    const practice = el("details", { class: "ka-units" },
+      el("summary", {}, `🎯 ${c.kaLabel === "Khan Academy" ? "Khan Academy" : c.kaLabel} practice for ${c.name} (${c.units.length} units)`),
+      el("ol", {}, c.units.map((u) => el("li", {}, el("a", { href: u.ka || c.ka, target: "_blank", rel: "noopener noreferrer", text: `Unit ${u.n}: ${u.title} ↗` }),
+        el("span", { class: "muted", text: ` · ${u.skills.join(", ")}` })))));
+    return el("div", {}, items.length ? el("ul", { class: "res-list" }, items.map((r) => resourceItem(r))) : null, practice);
   }
   async function loadResources() {
     const box = $("resourcesBox"); if (!box) return;
@@ -468,7 +491,7 @@ async function start() {
         const rs = (await getResources(force)).sort((a, b) => LEVELS.indexOf(a.level) - LEVELS.indexOf(b.level));
         list.replaceChildren(...(rs.length ? rs.map((r) => resourceItem(r, el("button", { type: "button", class: "linkbtn danger", text: "Delete", onclick: async () => {
           try { await F.deleteDoc(F.doc(db, "resources", r.id)); render(true); } catch (err) { setMsg(status, friendly(err), "err"); } } })))
-          : [el("li", { class: "empty", text: "No resources yet. Free worksheet packs are already shown to each family automatically." })]));
+          : [el("li", { class: "empty", text: "No extra links yet. Families already see Khan Academy practice for every unit of their course automatically." })]));
       } catch { list.replaceChildren(el("li", { class: "empty", text: "Resources couldn't load." })); }
     }
     box.replaceChildren(form, list); render(true);
@@ -478,7 +501,7 @@ async function start() {
   function welcomeCard(user) {
     const key = "apexWelcomed_" + user.uid;
     try { if (localStorage.getItem(key)) return null; } catch { return null; }
-    const card = el("article", { class: "card welcome-card", role: "status" },
+    const card = el("div", { class: "card welcome-card", role: "status" },
       el("h2", { text: "👋 Welcome to the Apex Student Portal!" }),
       el("p", { class: "muted", text: "Here's what you can do here:" }),
       el("ul", { class: "welcome-list" },
@@ -561,7 +584,7 @@ async function start() {
   }
 
   async function loadTeacher() {
-    loadStats(); loadReviews(); loadResources();
+    loadStats(); loadReviews(); loadResources(); loadCurriculum();
     const snap = await F.getDocs(F.query(F.collection(db, "students"), F.orderBy("name")));
     students = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
     // Flag students whose newest message is from the family and hasn't been seen yet
@@ -609,7 +632,7 @@ async function start() {
       el("label", {}, "Status", el("select", { name: "status" }, ["Practicing", "Mastered", "Needs review"].map((o) => el("option", { text: o })))),
       el("label", { class: "full" }, "Session note", el("textarea", { name: "note", maxlength: "600", placeholder: "What did they work on? What went well?" })),
       el("label", { class: "full" }, "Practice / homework (optional)", el("input", { name: "homework", maxlength: "200", placeholder: "e.g. 10 long division problems, page 3" })),
-      el("label", {}, "Assign a worksheet pack (optional)", packSelect("worksheet", "")),
+      worksheetPicker("worksheet", "", courseIdFor(s)),
       el("label", {}, "Other worksheet link (optional)", el("input", { name: "homeworkLink", type: "url", maxlength: "400", placeholder: "https://…" })),
       el("label", { class: "full" }, "Next goal (optional)", el("input", { name: "goal", maxlength: "160", value: s.nextGoal || "" })),
       el("label", { class: "check full" }, el("input", { type: "checkbox", name: "counts", checked: "" }), "Count this as a completed session"),
@@ -725,6 +748,29 @@ async function start() {
     } });
     holder.append(editBtn, " ", removeBtn);
     return holder;
+  }
+
+  // ---------- Curriculum (teacher reference): every course → unit → skills, worksheets, Khan Academy link ----------
+  function loadCurriculum() {
+    const box = $("curriculumBox"); if (!box || box.dataset.ready) return; box.dataset.ready = "1";
+    box.replaceChildren(...CURRICULUM.map((c) => el("details", { class: "cur-course" },
+      el("summary", {}, el("strong", { text: c.name }), el("span", { class: "muted", text: ` · ${c.course} · ${c.units.length} units` })),
+      el("p", { class: "cur-src" }, c.id === "comp" ? "Apex's own curriculum. Extra practice: " : "Follows Khan Academy's course units. Course page: ",
+        el("a", { href: c.ka, target: "_blank", rel: "noopener noreferrer", text: `${c.kaLabel} ↗` })),
+      el("ol", { class: "cur-units" }, c.units.map((u) => el("li", {},
+        el("div", { class: "cur-title" }, el("strong", { text: `Unit ${u.n}: ${u.title}` })),
+        el("div", { class: "muted cur-skills", text: u.skills.join(" · ") }),
+        el("div", { class: "cur-links" },
+          ...u.sheets.map((sh) => el("a", { href: `worksheets/${sh.slug}.html`, target: "_blank", rel: "noopener", text: `📄 ${sh.label}` })),
+          u.ka ? el("a", { href: u.ka, target: "_blank", rel: "noopener noreferrer", text: "🎯 Khan Academy ↗" }) : null,
+          el("button", { type: "button", class: "linkbtn", text: "Assign Practice A", onclick: () => assignFromCurriculum(u.sheets[0].slug) }))))))));
+  }
+  function assignFromCurriculum(slug) {
+    const picker = $("logMsg")?.closest("form")?.querySelector(".ws-picker");
+    if (!selectedId || !picker) { toast("Open a student first, then click Assign."); return; }
+    picker.choose(slug);
+    const form = picker.closest("form"); form.scrollIntoView({ behavior: "smooth", block: "center" });
+    toast(`📄 ${PACKS[slug]} chosen. Finish the update and click "Add update".`);
   }
 
   // Reviews waiting for approval (teacher)

@@ -91,3 +91,5 @@ html[data-theme="dark"] .contact .btn.ghost{background:transparent;color:#fff;bo
 html[data-theme="dark"] .welcome-card{background:linear-gradient(135deg,#16283f,#132b2a);border-color:var(--line)}
 html[data-theme="dark"] .steps li{background:#1a2c45;border-color:var(--line)}
 html[data-theme="dark"] .mail{background:#1d3352;color:var(--ink)}
+html[data-theme="dark"] :is(.cur-course,.ka-units){background:#1a2c45;border-color:var(--line)}
+html[data-theme="dark"] .cur-units li{background:#142338;border-color:var(--line)}

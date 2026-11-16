@@ -1,6 +1,6 @@
 """Generate Apex Tutoring printable worksheet packs.
 
-Usage:  python3 tools/make_worksheets.py [seed]
+Usage:  python3 tools/make_review_packs.py [seed]   (the 6 older mixed-review packs)
 Writes worksheets/<pack>.html (print-ready, problems + answer key). Then the PDFs are
 made with headless Chrome (see tools/README in START_HERE.md). Change the seed to get a
 brand-new set of problems with the same skills.
@@ -195,7 +195,7 @@ def build(slug, title, sub, sections):
     pdf = f"{slug}.pdf"
     doc = f'''<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{html.escape(title)} Worksheet | Apex Tutoring</title><meta name="robots" content="noindex"><link rel="icon" href="../logo.svg"><style>{CSS}</style></head><body>
-<div class="printbar"><a class="light" href="../#worksheets">← Back</a><a class="light" href="{pdf}" download>Download PDF</a><button onclick="print()">Print</button></div>
+<div class="printbar"><a class="light" href="../portal.html">← Portal</a><a class="light" href="{pdf}" download>Download PDF</a><button onclick="print()">Print</button></div>
 {page(title, sub, sections)}{page(title, sub, sections, key=True)}</body></html>'''
     with open(os.path.join(OUT, f"{slug}.html"), "w") as f:
         f.write(doc)
