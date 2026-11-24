@@ -23,6 +23,7 @@ function courseIdFor(s) {
   if (s.course === "Test Prep") return "comp";
   const m = /Grade (\d)$/.exec(s.grade || ""); return m ? "g" + m[1] : "pa";
 }
+let tutorName = ""; // signed-in tutor (from their teachers/{uid} record); empty for families
 const TUTOR_EMAIL = "team.apextutoring@gmail.com";
 async function emailFamily(student, subject, message, toEmail = student.familyEmail) {
   if (EMAILJS.service.startsWith("PASTE")) throw new Error("Email notifications aren't set up yet.");
@@ -112,8 +113,8 @@ async function start() {
     show("loadingView");
     try {
       const t = await F.getDoc(F.doc(db, "teachers", user.uid));
-      if (t.exists()) { $("teacherName").textContent = t.data().name || "Teacher"; await loadTeacher(); show("teacherView"); }
-      else { await loadFamily(user); show("familyView"); }
+      if (t.exists()) { tutorName = t.data().name || ""; $("teacherName").textContent = tutorName || "Teacher"; await loadTeacher(); show("teacherView"); }
+      else { tutorName = ""; await loadFamily(user); show("familyView"); }
     } catch (err) { console.error(err); setMsg($("loginMsg"), friendly(err), "err"); await A.signOut(auth); }
   });
 
@@ -152,7 +153,7 @@ async function start() {
           try {
             await F.updateDoc(F.doc(db, "students", opts.studentId, "updates", u.id), { homeworkDone: box.checked, homeworkDoneAt: F.serverTimestamp() });
             u.homeworkDone = box.checked; lbl.lastChild.textContent = box.checked ? "Done ✓" : "Mark as done"; hw.classList.toggle("done", box.checked);
-            if (box.checked) toast("🎉 Nice work! Veer will see your homework is done.");
+            if (box.checked) toast("🎉 Nice work! Your tutor will see your homework is done.");
           } catch (e) { box.checked = !box.checked; lbl.lastChild.textContent = friendly(e); }
           finally { box.disabled = false; }
         });
@@ -164,7 +165,7 @@ async function start() {
     }
     return [
       el("strong", { text: u.topic || "Session" }), u.status ? el("span", { class: pillClass(u.status), text: u.status }) : null,
-      el("time", { text: "  " + fmtDate(u.createdAt) }),
+      el("time", { text: "  " + fmtDate(u.createdAt) + (u.tutor ? " · " + u.tutor : "") }),
       u.note ? el("p", { text: u.note }) : null, hw,
     ];
   }
@@ -339,11 +340,16 @@ async function start() {
       const text = box.value.trim(); if (!text) return;
       const btn = form.querySelector("button"); btn.disabled = true; setMsg(status, "");
       try {
-        await F.addDoc(F.collection(db, "students", student.id, "messages"), { from: mine, text, createdAt: F.serverTimestamp() });
+        const msgs = F.collection(db, "students", student.id, "messages"), base = { from: mine, text, createdAt: F.serverTimestamp() };
+        if (role === "teacher" && tutorName) {
+          // Sign the message. If the published rules don't allow a name yet, send it unsigned.
+          try { await F.addDoc(msgs, { ...base, name: tutorName }); }
+          catch (err) { if (err?.code !== "permission-denied") throw err; await F.addDoc(msgs, base); }
+        } else await F.addDoc(msgs, base);
         box.value = "";
         const doEmail = role === "teacher" ? notify.checked : true;
         if (doEmail) {
-          const subject = role === "teacher" ? `New message from Veer about ${student.name}` : `New message from ${student.name}'s family`;
+          const subject = role === "teacher" ? `New message from ${tutorName || "your tutor"} about ${student.name}` : `New message from ${student.name}'s family`;
           const to = role === "teacher" ? student.familyEmail : TUTOR_EMAIL;
           try { await emailFamily(student, subject, text, to); setMsg(status, role === "teacher" ? "Sent. Family emailed ✓" : "Sent ✓", "ok"); }
           catch (mailErr) { setMsg(status, "Sent (email notice didn't go out: " + mailErr.message + ")", "info"); }
@@ -356,7 +362,7 @@ async function start() {
       const msgs = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
       list.replaceChildren(...(msgs.length ? msgs.map((m) => {
         const bubble = el("div", { class: "bubble " + (m.from === mine ? "me" : "them") },
-          el("span", { class: "who", text: m.from === "teacher" ? "Veer" : `${student.name}'s family` }),
+          el("span", { class: "who", text: m.from === "teacher" ? (m.name || "Apex tutor") : `${student.name}'s family` }),
           el("p", { text: m.text }), el("time", { text: fmtTime(m.createdAt) }));
         if (role === "teacher") bubble.append(el("button", { type: "button", class: "linkbtn danger tiny", text: "Delete", onclick: async () => {
           try { await F.deleteDoc(F.doc(db, "students", student.id, "messages", m.id)); } catch (err) { setMsg(status, friendly(err), "err"); } } }));
@@ -401,7 +407,7 @@ async function start() {
       el("h3", { text: "Looking ahead" }),
       el("ul", { class: "rnotes" }, el("li", {}, el("b", { text: "Next goal: " }), s.nextGoal || "To be set at the next session"),
         el("li", {}, el("b", { text: "Next session: " }), fmtSession(s) || "Not scheduled yet")),
-      el("p", { class: "rfoot", text: `Prepared by Veer · Apex Tutoring · ${new Date().toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" })} · apex-tutoring.github.io` }));
+      el("p", { class: "rfoot", text: `Prepared by ${tutorName ? tutorName + " · " : ""}Apex Tutoring · ${new Date().toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" })} · apex-tutoring.github.io` }));
   }
   function reportText(s, updates, key) {
     const r = reportData(s, updates, key);
@@ -507,7 +513,7 @@ async function start() {
       el("ul", { class: "welcome-list" },
         el("li", { text: "📈 See progress, topics mastered, and your session calendar" }),
         el("li", { text: "📝 Find homework and tick it off when it's done" }),
-        el("li", { text: "💬 Message Veer anytime, and he gets an email" }),
+        el("li", { text: "💬 Message your tutor anytime (we get an email)" }),
         el("li", { text: "📄 Print a monthly progress report" })),
       el("button", { type: "button", class: "btn small", text: "Got it", onclick: () => { try { localStorage.setItem(key, "1"); } catch {} card.remove(); } }));
     return card;
@@ -540,19 +546,19 @@ async function start() {
     const ref = F.doc(db, "testimonials", user.uid);
     let existing = null; try { const r = await F.getDoc(ref); if (r.exists()) existing = r.data(); } catch {}
     const status = el("p", { class: "msg", role: "status" });
-    if (existing) setMsg(status, existing.approved ? "✓ Your review is on the Apex homepage. Thank you!" : "Thanks! Your review is waiting for Veer's approval.", existing.approved ? "ok" : "info");
+    if (existing) setMsg(status, existing.approved ? "✓ Your review is on the Apex homepage. Thank you!" : "Thanks! Your review is waiting for approval.", existing.approved ? "ok" : "info");
     const stars = el("select", { name: "rating", "aria-label": "Rating" }, [5, 4, 3, 2, 1].map((n) => { const o = el("option", { value: String(n), text: "★".repeat(n) + "☆".repeat(5 - n) }); if (existing && existing.rating === n) o.selected = true; return o; }));
     const form = el("form", { class: "form-grid" },
       el("label", {}, "Your rating", stars),
       el("label", {}, "Name to show", el("input", { name: "name", required: "", maxlength: "60", value: existing?.name || `Parent of a ${firstStudent.grade || ""} student`.replace("  ", " ") })),
-      el("label", { class: "full" }, "Your review", el("textarea", { name: "text", required: "", minlength: "10", maxlength: "600", placeholder: "How has tutoring with Veer helped your student?" }, existing?.text || "")),
-      el("div", { class: "row full" }, el("button", { class: "btn small", type: "submit", text: existing ? "Update review" : "Submit review" }), el("small", { class: "muted", text: "Shown on the homepage after Veer approves it. Only the name you enter is shown." })),
+      el("label", { class: "full" }, "Your review", el("textarea", { name: "text", required: "", minlength: "10", maxlength: "600", placeholder: "How has Apex Tutoring helped your student?" }, existing?.text || "")),
+      el("div", { class: "row full" }, el("button", { class: "btn small", type: "submit", text: existing ? "Update review" : "Submit review" }), el("small", { class: "muted", text: "Shown on the homepage after we approve it. Only the name you enter is shown." })),
       status);
     form.addEventListener("submit", async (e) => {
       e.preventDefault(); const f = new FormData(form);
       try {
         await F.setDoc(ref, { name: f.get("name").trim(), rating: Number(f.get("rating")), text: f.get("text").trim(), approved: false, createdAt: F.serverTimestamp() });
-        setMsg(status, "💛 Thank you! Your review means a lot. It'll appear on the homepage once Veer approves it.", "ok");
+        setMsg(status, "💛 Thank you! Your review means a lot. It'll appear on the homepage once we approve it.", "ok");
         emailFamily({ name: firstStudent.name }, "New review waiting for approval", `${f.get("name").trim()} left a ${f.get("rating")}-star review:\n\n${f.get("text").trim()}\n\nApprove it in the teacher dashboard.`, TUTOR_EMAIL).catch(() => {});
       } catch (err) { setMsg(status, friendly(err), "err"); }
     });
@@ -647,7 +653,7 @@ async function start() {
       try {
         await F.addDoc(F.collection(db, "students", id, "updates"), {
           topic: f.get("topic").trim(), status: f.get("status"), note: f.get("note").trim(), goal: f.get("goal").trim(),
-          homework: f.get("homework").trim(), homeworkLink: link, worksheet: f.get("worksheet") || "", homeworkDone: false, createdAt: F.serverTimestamp(),
+          homework: f.get("homework").trim(), homeworkLink: link, worksheet: f.get("worksheet") || "", homeworkDone: false, tutor: tutorName, createdAt: F.serverTimestamp(),
         });
         const patch = { nextGoal: f.get("goal").trim(), lastSession: F.serverTimestamp() };
         if (f.get("counts")) patch.sessions = F.increment(1);

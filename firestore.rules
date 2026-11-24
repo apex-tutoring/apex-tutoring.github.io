@@ -45,7 +45,10 @@ service cloud.firestore {
           return signedIn() && get(/databases/$(database)/documents/students/$(studentId)).data.familyUid == request.auth.uid;
         }
         function validMessage(from) {
-          return request.resource.data.keys().hasOnly(['from', 'text', 'createdAt'])
+          return request.resource.data.keys().hasOnly(from == 'teacher' ? ['from', 'text', 'createdAt', 'name'] : ['from', 'text', 'createdAt'])
+            // A tutor can only sign with the name on their own teacher record.
+            && (!('name' in request.resource.data)
+              || request.resource.data.name == get(/databases/$(database)/documents/teachers/$(request.auth.uid)).data.name)
             && request.resource.data.from == from
             && request.resource.data.text is string
             && request.resource.data.text.size() > 0 && request.resource.data.text.size() <= 1000
